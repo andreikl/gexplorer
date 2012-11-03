@@ -1,0 +1,25 @@
+<RCC>
+    <qresource prefix="/res">
+        <file>resources/decrease.png</file>
+        <file>resources/exit.png</file>
+        <file>resources/increase.png</file>
+        <file>resources/add.png</file>
+        <file>resources/folder.png</file>
+        <file>resources/del.png</file>
+        <file>resources/edit.png</file>
+        <file>resources/gallery.png</file>
+        <file>resources/gallery_accept.png</file>
+        <file>resources/gallery_cancel.png</file>
+        <file>resources/left.png</file>
+        <file>resources/right.png</file>
+        <file>resources/rotate_left.png</file>
+        <file>resources/rotate_right.png</file>
+        <file>resources/view.png</file>
+        <file>resources/back.png</file>
+        <file>resources/next.png</file>
+        <file>resources/play.png</file>
+        <file>resources/pause.png</file>
+        <file>resources/stop.png</file>
+        <file>resources/unite.png</file>
+    </qresource>
+</RCC>

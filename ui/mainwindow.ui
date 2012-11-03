@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>687</width>
+    <height>317</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="pwContent">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <layout class="QVBoxLayout" name="plLayout">
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <property name="margin">
+     <number>0</number>
+    </property>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="pmbMenuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>687</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="pmFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="paExit"/>
+   </widget>
+   <widget class="QMenu" name="pmWindow">
+    <property name="title">
+     <string>Window</string>
+    </property>
+    <widget class="QMenu" name="pmViews">
+     <property name="title">
+      <string>Views</string>
+     </property>
+    </widget>
+    <addaction name="pmViews"/>
+   </widget>
+   <addaction name="pmFile"/>
+   <addaction name="pmWindow"/>
+  </widget>
+  <widget class="QToolBar" name="ptbToolBar">
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <widget class="QStatusBar" name="psbStatusBar"/>
+  <widget class="GalleriesWindow" name="pdwGalleriesWindow">
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+  </widget>
+  <widget class="CustomGalleriesWindow" name="pdwCustomGalleriesWindow">
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+  </widget>
+  <widget class="KeyGalleriesWindow" name="pdwKeyGalleriesWindow">
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+  </widget>
+  <widget class="DownloadsWindow" name="pdwDownloadsWindow">
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+  </widget>
+  <action name="paExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>KeyGalleriesWindow</class>
+   <extends>QDockWidget</extends>
+   <header location="global">ui/windows/keygallerieswindow.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>GalleriesWindow</class>
+   <extends>QDockWidget</extends>
+   <header location="global">ui/windows/gallerieswindow.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>DownloadsWindow</class>
+   <extends>QDockWidget</extends>
+   <header location="global">ui/windows/downloadswindow.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CustomGalleriesWindow</class>
+   <extends>QDockWidget</extends>
+   <header location="global">ui/windows/customgallerieswindow.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
