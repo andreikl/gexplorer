@@ -10,7 +10,7 @@
 
 KeyHandler* KeyHandler::handler = NULL;
 
-KeyHandler* KeyHandler::createInstance(Application*)
+KeyHandler* KeyHandler::createInstance()
 {
     if(!handler) {
         KeyHandler* tempHandler = new KeyHandler();
@@ -57,8 +57,9 @@ CustomGalleryData* KeyHandler::addToKey(KeyData& key, int galleryId)
         key.galleries.append(gallery);
 
         gallery->keys.append(&key);
-        emit CustomGalleryHandler::getInstance()->onUpdCustomGallery(gallery);
-        emit onUpdKey(&key);
+        emit CustomGalleryHandler::getInstance()->onUpdCustomGallery(gallery, "keys");
+        //emit onUpdKey(&key);
+        emit onAddToKey(&key, gallery);
 
         return gallery;
     }
@@ -85,8 +86,9 @@ bool KeyHandler::delFromKey(KeyData& key, CustomGalleryData& value)
         key.galleries.removeOne(&value);
 
         value.keys.removeOne(&key);
-        emit CustomGalleryHandler::getInstance()->onUpdCustomGallery(&value);
-        emit onUpdKey(&key);
+        emit CustomGalleryHandler::getInstance()->onUpdCustomGallery(&value, "keys");
+        //emit onUpdKey(&key);
+        emit onDelFromKey(&key, &value);
 
         return true;
     }
@@ -107,14 +109,16 @@ bool KeyHandler::delKey(KeyData& value)
 
 KeyData* KeyHandler::updKey(KeyData& value)
 {
-    if(DbHandler::getInstance()->updKey(value)) {
-        KeyData* key = getKeyById(value.getId());
-        key->setName(value.getName());
-
-        emit onUpdKey(key);
-        return key;
+    KeyData* key = getKeyById(value.getId());
+    if(key->getName().compare(value.getName()) != 0) {
+        if(DbHandler::getInstance()->updKey(value)) {
+            key->setName(value.getName());
+            emit onUpdKey(key);
+        } else {
+            key = NULL;
+        }
     }
-    return NULL;
+    return key;
 }
 
 KeyData* KeyHandler::getKeyById(int id) const

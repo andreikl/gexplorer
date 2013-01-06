@@ -11,40 +11,36 @@ class KeyData;
 class GalleryTreeItem
 {
 public:
-    GalleryTreeItem(BaseData* pData, const QString& name, GalleryTreeItem* pParent);
+    GalleryTreeItem(BaseData* data, const QString& name, GalleryTreeItem* parent);
     virtual ~GalleryTreeItem();
 
 public:
-    GalleryData* Gallery();
-    CustomGalleryData* CustomGallery();
-    KeyData* Key();
+    CustomGalleryData* getCustomGallery();
+    GalleryData* getGallery();
+    KeyData* getKey();
 
 public:
-    BaseData* Data();
-    void Data(BaseData* pData);
+    GalleryTreeItem* getParent();
+    const QString& getName();
+    BaseData* getData();
 
 public:
-    const QString& Name();
-    void Name(const QString& name);
+    void setParent(GalleryTreeItem* parent);
+    void setName(const QString& name);
+    void setData(BaseData* data);
 
 public:
-    GalleryTreeItem* Parent();
-    void Parent(GalleryTreeItem* pParent);
-
-public:
-    QList<GalleryTreeItem*>& Childs();
+    QList<GalleryTreeItem*>& getChilds();
 
 private:
+    GalleryTreeItem* parent;
+    BaseData* data;
     QString name;
 
 private:
-    BaseData* pData;
-
-private:
     QList<GalleryTreeItem*> childs;
-    GalleryTreeItem* pParent;
-};
 
+};
 
 Q_DECLARE_METATYPE(GalleryTreeItem*)
 

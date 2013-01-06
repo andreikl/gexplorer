@@ -2,6 +2,8 @@
 #define CUSTOMGALLERYDATA_H
 
 #include <QtCore/QMetaType>
+#include <QtCore/QString>
+#include <QtCore/QList>
 
 #include "data/basedata.h"
 

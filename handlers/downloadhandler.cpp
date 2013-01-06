@@ -3,36 +3,31 @@
 #include <QtCore/QDir>
 #include <QtCore/QUrl>
 
-#include <QtNetwork/QHttp>
+#include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
 
 #include "data/galleryitemdata.h"
 #include "data/gallerydata.h"
 
+#include "handlers/namespoolhandler.h"
+
 #include "handlers/downloadhandler.h"
 
-DownloadHandler::DownloadHandler(const GalleryItemData& item): file(NULL), http(NULL)
+DownloadHandler::DownloadHandler(const GalleryItemData& item): data(NULL), reply(NULL), file(NULL)
 {
     this->item = item.clone(NULL);
+    gallery = item.getGallery();
+
     cleanContent();
-
-    QDir dir(QDir::currentPath() + QDir::separator() + item.getGallery()->getPath());
-    if(!dir.exists()) {
-        dir.mkpath(dir.path());
-    }
-    file = new QFile(dir.path() + QDir::separator() + item.getFileName());
-
-    http = new QHttp(this);
-    connect(http, SIGNAL(readyRead(QHttpResponseHeader)), SLOT(dataEvent(QHttpResponseHeader)));
-    connect(http, SIGNAL(requestFinished(int, bool)), SLOT(finishEvent(int, bool)));
 }
 
 DownloadHandler::~DownloadHandler()
 {
     cleanContent();
 
-    if(http) {
-        delete http;
-        http = NULL;
+    if(reply) {
+        delete reply;
+        reply = NULL;
     }
 
     if(file) {
@@ -44,6 +39,7 @@ DownloadHandler::~DownloadHandler()
         delete item;
         item = NULL;
     }
+    gallery = NULL;
 }
 
 const GalleryItemData* DownloadHandler::getItem() const
@@ -58,24 +54,31 @@ uint DownloadHandler::getPercent() const
 
 bool DownloadHandler::isDownload() const
 {
-    return (id != -1)? true: false;
+    return reply && reply->isRunning();
 }
 
-bool DownloadHandler::load()
+bool DownloadHandler::load(QNetworkAccessManager* network)
 {
     bool res = false;
 
+    data = NamesPoolHandler::getInstance()->GetEmptyData();
+    data->isBusy = true;
+
+    file = new QFile(QDir::currentPath() + QDir::separator() + data->name);
+    if(file->exists()) {
+        file->remove();
+    }
     file->open(QIODevice::WriteOnly);
 
-    QUrl u(item->getUrl());
-    if(u.port() > 0) {
-        http->setHost(u.host(), u.port());
-    } else {
-        http->setHost(u.host());
-    }
-    id = http->get(u.path());
+    QNetworkRequest req(QUrl(item->getUrl()));
+    //req.setRawHeader(QString("Referer").toAscii(), gallery->getSource().toAscii());
+    req.setRawHeader(QString("Referer").toLatin1(), gallery->getSource().toLatin1());
 
-    if(file && file->isOpen() && id >= 0) {
+    reply = network->get(req);
+    connect(reply, SIGNAL(readyRead()), SLOT(dataEvent()));
+    connect(reply, SIGNAL(finished()), SLOT(finishEvent()));
+
+    if(file && file->isOpen() && reply->error() == QNetworkReply::NoError) {
         res = true;
     } else {
         cleanContent();
@@ -84,48 +87,49 @@ bool DownloadHandler::load()
     return res;
 }
 
-void DownloadHandler::dataEvent(const QHttpResponseHeader& resp)
+void DownloadHandler::finishEvent()
 {
-    if(resp.statusCode() == 200) {
-        qint64 wlen = file->write(http->readAll());
+    bool res = false;
+
+    if(reply->error() == QNetworkReply::NoError) {
+
+        if(file->isOpen()) {
+            file->close();
+        }
+
+        QDir dir(QDir::currentPath() + QDir::separator() + gallery->getPath());
+        if(!dir.exists()) {
+            dir.mkpath(dir.path());
+        }
+        res = dir.rename(QDir::currentPath() + QDir::separator() + data->name, dir.path() + QDir::separator() + item->getFileName());
+
+        if(data->isBusy) {
+            data->isBusy = false;
+        }
+    } else {
+        qDebug() << "download finish" << reply->errorString();
+    }
+
+    //delete reply;
+    //reply = NULL;
+
+    cleanContent();
+
+    emit onFinish(this, res);
+}
+
+void DownloadHandler::dataEvent()
+{
+    if(reply->error() == QNetworkReply::NoError) {
+        qint64 wlen = file->write(reply->readAll());
         if(wlen != -1) {
             loaded += (uint)wlen;
         }
 
-        if(resp.hasContentLength()) {
-            percent = (uint)(loaded / (double)resp.contentLength() * 100);
-            emit onData(percent);
-        }
-    }
-}
-
-void DownloadHandler::finishEvent(int id, bool isError)
-{
-    if(id == this->id) {
-        bool res = false;
-
-        if(!isError) {
-            QHttpResponseHeader responce = http->lastResponse();
-            if(responce.statusCode() == 200) {
-                res = true;
-            } else  if(responce.statusCode() == 302) {
-                QString url = responce.value("Location");
-                //qDebug() << "redirect to:" << url;
-
-                QUrl u(url);
-                if(u.port() > 0) {
-                    http->setHost(u.host(), u.port());
-                } else {
-                    http->setHost(u.host());
-                }
-                this->id = http->get(u.path());
-                return;
-            }
-        }
-
-        cleanContent();
-
-        emit onFinish(this, res);
+        percent = (uint)(loaded / (double)reply->header(QNetworkRequest::ContentLengthHeader).toLongLong() * 100);
+        emit onData(percent);
+    } else {
+        qDebug() << "download data" << reply->errorString();
     }
 }
 
@@ -133,13 +137,16 @@ void DownloadHandler::cleanContent()
 {
     percent = 0;
     loaded = 0;
-    id = -1;
-
-    if(http) {
-        http->close();
-    }
 
     if(file && file->isOpen()) {
         file->close();
+    }
+
+    if(file && file->exists()) {
+        file->remove();
+    }
+
+    if(data && data->isBusy) {
+        data->isBusy = false;
     }
 }

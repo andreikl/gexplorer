@@ -1,67 +1,85 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QtGui/QMainWindow>
+#include <QtWidgets/QMainWindow>
 
-#include "application.h"
+class CustomGalleriesWindow;
+class KeyGalleriesWindow;
+class GalleriesWindow;
+class DownloadsWindow;
 
-#include "data/gallerydata.h"
+class CustomGalleryControl;
+class BrowserControl;
+class GalleryControl;
 
-#include "ui/controls/cleancontrol.h"
-#include "ui/controls/browsercontrol.h"
-#include "ui/controls/gallerycontrol.h"
-#include "ui/controls/customgallerycontrol.h"
+class CustomGalleryItemData;
+class CustomGalleryData;
+class GalleryItemData;
+class GalleryData;
+class KeyData;
 
-namespace Ui {
+QT_BEGIN_NAMESPACE
+class QSplitter;
+QT_END_NAMESPACE
+
+namespace Ui
+{
     class MainWindow;
 }
 
-class MainWindow : public QMainWindow {
+class MainWindow : public QMainWindow
+{
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget* pParent = NULL);
+    explicit MainWindow(QWidget* parent);
     virtual ~MainWindow();
 
 private slots:
+    void gotoCustomGalleryItemEvent(CustomGalleryItemData* item);
+    void gotoCustomGalleryEvent(CustomGalleryData* value);
+    void gotoGalleryItemEvent(GalleryItemData* item);
+    void gotoKeyEvent(KeyData* key, CustomGalleryData* gallery);
+
+    void customGalleryEvent(CustomGalleryData* value);
+    void browseGalleryEvent(GalleryData* value);
+    void galleryEvent(GalleryData* value);
+
+    void addGalleryEvent(const QString& source);
+
+    void delCustomGalleryEvent(CustomGalleryData* gallery);
+    void delGalleryEvent(GalleryData* gallery);
+
     void customGalleriesWindowEvent(bool value);
     void keyGalleriesWindowEvent(bool value);
     void galleriesWindowEvent(bool value);
     void downloadsWindowEvent(bool value);
 
-private slots:
-    void gotoCustomGalleryEvent(CustomGalleryData* value);
-    void customGalleryEvent(CustomGalleryData* value);
-
-private slots:
-    void delCustomGalleryEvent(CustomGalleryData* gallery);
-    void delGalleryEvent(GalleryData* gallery);
-
-private slots:
-    void AddGalleryEvent(const QString& source);
-    void BrowseGalleryEvent(GalleryData* pValue);
-    void GalleryEvent(GalleryData* pValue);
-
-private slots:
-    void ExitBrowserEvent();
-    void ExitGalleryEvent();
-    void ExitCustomGalleryEvent();
+    void exitCustomGalleryEvent();
+    void exitGalleryEvent();
+    void exitBrowserEvent();
 
 private:
-    BrowserControl* pBrowser;
+    void showBrowser();
+
+private:
+    CustomGalleriesWindow* dwCustomGalleries;
+    GalleriesWindow* dwGalleries;
+    DownloadsWindow* dwDownloads;
+    KeyGalleriesWindow* dwKeys;
+
+    CustomGalleryControl* customGallery;
+    GalleryControl* gallery;
+    BrowserControl* browser;
+
+private:
+    bool isCustomGallery;
+    bool isGallery;
     bool isBrowser;
 
 private:
-    GalleryControl* pGallery;
-    bool isGallery;
-
-private:
-    CustomGalleryControl* pCustomGallery;
-    bool isCustomGallery;
-
-private:
-    CleanControl* pClean;
-    Ui::MainWindow* pUi;
+    QSplitter* splitter;
+    Ui::MainWindow* ui;
 };
 
 #endif // MAINWINDOW_H

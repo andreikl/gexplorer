@@ -10,16 +10,10 @@
     <height>300</height>
    </rect>
   </property>
-  <property name="sizePolicy">
-   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-    <horstretch>0</horstretch>
-    <verstretch>0</verstretch>
-   </sizepolicy>
-  </property>
   <property name="windowTitle">
    <string/>
   </property>
-  <layout class="QVBoxLayout" name="plLayout">
+  <layout class="QVBoxLayout" name="lLayout">
    <property name="spacing">
     <number>0</number>
    </property>

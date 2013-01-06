@@ -2,8 +2,11 @@
 
 #include "data/galleryitemdata.h"
 
-GalleryItemData::GalleryItemData(GalleryData* gallery, const ExtensionData& extension): status(StatusNew)
+GalleryItemData::GalleryItemData(GalleryData* gallery, const ExtensionData& extension): status(StatusNew), reference(NULL), referenceAngle(0)
 {
+    width = 0;
+    height = 0;
+
     this->gallery = gallery;
     this->extension = &extension;
 
@@ -29,7 +32,7 @@ const ExtensionData& GalleryItemData::getExtension() const
     return *extension;
 }
 
-const GalleryData* GalleryItemData::getGallery() const
+GalleryData* GalleryItemData::getGallery() const
 {
     return gallery;
 }
@@ -59,6 +62,16 @@ int GalleryItemData::getId() const
     return id;
 }
 
+GalleryItemData* GalleryItemData::getReference() const
+{
+    return reference;
+}
+
+int GalleryItemData::getReferenceAngle() const
+{
+    return referenceAngle;
+}
+
 void GalleryItemData::setStatus(GalleryItemStatusEnum value)
 {
     status = value;
@@ -82,6 +95,16 @@ void GalleryItemData::setUrl(const QString& value)
 void GalleryItemData::setId(int value)
 {
     id = value;
+}
+
+void GalleryItemData::setReference(GalleryItemData* reference)
+{
+    this->reference = reference;
+}
+
+void GalleryItemData::setReferenceAngle(int angle)
+{
+    referenceAngle = angle;
 }
 
 GalleryItemData* GalleryItemData::clone(GalleryData* gallery) const

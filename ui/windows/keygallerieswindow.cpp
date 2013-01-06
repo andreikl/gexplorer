@@ -1,14 +1,15 @@
+#include <QtCore/QMimeData>
 #include <QtCore/QDebug>
-
-#include <QtGui/QMessageBox>
-#include <QtGui/QTreeView>
-#include <QtGui/QMenu>
 
 #include <QtGui/QDragEnterEvent>
 
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QTreeView>
+#include <QtWidgets/QToolBar>
+#include <QtWidgets/QMenu>
+
 #include "data/keydata.h"
 
-#include "handlers/customgalleryhandler.h"
 #include "handlers/keyhandler.h"
 
 #include "ui/common/gallerytreemodel.h"
@@ -16,14 +17,13 @@
 
 #include "ui/controls/titlecontrol.h"
 
-#include "ui/dialogs/editkeydialog.h"
+#include "ui/dialogs/editnamedialog.h"
 
 #include "ui/windows/keygallerieswindow.h"
-
 #include "ui_keygallerieswindow.h"
-#include "ui_titlecontrol.h"
 
-class KeysTree: public QTreeView {
+class KeysTree: public QTreeView
+{
 
 public:
     KeysTree(QWidget* parent): QTreeView(parent)
@@ -49,19 +49,15 @@ public:
 protected:
     void dragEnterEvent(QDragEnterEvent* value)
     {
-        if(value->mimeData()->hasFormat(Config::ApplicationSignature())) {
-            QByteArray data = value->mimeData()->data(Config::ApplicationSignature());
+        if(value->mimeData()->hasFormat(Config::getInstance()->getApplicationSignature())) {
+            QByteArray data = value->mimeData()->data(Config::getInstance()->getApplicationSignature());
             QDataStream dataStream(&data, QIODevice::ReadOnly);
 
             int type = 0;
             dataStream >> type;
             if(type == Config::ETypeCustomGallery) {
-                //int id = 0;
-                //dataStream >> id;
-                //gallery = CustomGalleryHandler::getInstance()->getCustomGalleryById(id);
 
                 dataStream >> galleryId;
-
                 return value->accept();
             }
         }
@@ -73,10 +69,9 @@ protected:
         bool res = false;
         const QModelIndex& index = indexAt(value->pos());
         if(index.isValid()) {
-            GalleryTreeItem* item = qVariantValue<GalleryTreeItem*>(index.data(Qt::UserRole));
-            if(item->Key()) {
-                //if(!item->Key()->getGalleries().contains(gallery)) {
-                if(!item->Key()->isContainGallery(galleryId)) {
+            GalleryTreeItem* item = qvariant_cast<GalleryTreeItem*>(index.data(Qt::UserRole));
+            if(item->getKey()) {
+                if(!item->getKey()->isContainGallery(galleryId)) {
                     res = true;
                 }
             }
@@ -94,14 +89,12 @@ protected:
     {
         const QModelIndex& index = indexAt(value->pos());
         if(index.isValid()) {
-            GalleryTreeItem* item = qVariantValue<GalleryTreeItem*>(index.data(Qt::UserRole));
-            //if(item->Key() && !item->Key()->getGalleries().contains(gallery)) {
-            if(item->Key() && !item->Key()->isContainGallery(galleryId)) {
-                KeyData* key = item->Key();
-                //if(KeyHandler::getInstance()->addToKey(*key, *gallery)) {
+            GalleryTreeItem* item = qvariant_cast<GalleryTreeItem*>(index.data(Qt::UserRole));
+            if(item->getKey() && !item->getKey()->isContainGallery(galleryId)) {
+                KeyData* key = item->getKey();
                 CustomGalleryData* gallery = KeyHandler::getInstance()->addToKey(*key, galleryId);
                 if(gallery) {
-                    const QModelIndex& i = model->GetIndex(key, gallery);
+                    const QModelIndex& i = model->getIndex(key, gallery);
                     selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
                 }
                 return value->accept();
@@ -114,30 +107,36 @@ public:
     GalleryTreeModel* model;
 
 private:
-    //CustomGalleryData* gallery;
     int galleryId;
+
 };
 
-KeyGalleriesWindow::KeyGalleriesWindow(QWidget* parent): QDockWidget(parent), title(NULL), ui(new Ui::KeyGalleriesWindow)
+KeyGalleriesWindow::KeyGalleriesWindow(QWidget* parent): QDockWidget(parent), ui(new Ui::KeyGalleriesWindow)
 {
     ui->setupUi(this);
 
-    title =  new TitleControl(this);
+    TitleControl* title = new TitleControl(this);
     setTitleBarWidget(title);
 
     twKeys = new KeysTree(this);
-    ui->plContent->addWidget(twKeys);
+    ui->lContent->addWidget(twKeys);
 
     connect(twKeys->selectionModel(), SIGNAL(selectionChanged(QItemSelection, QItemSelection)), SLOT(selectedEvent()));
     connect(twKeys, SIGNAL(doubleClicked(const QModelIndex&)), SLOT(activatedEvent()));
 
-    createMenuAndActions();
+    createMenuAndActions(title);
     updateButtons();
 }
 
 KeyGalleriesWindow::~KeyGalleriesWindow()
 {
     delete ui;
+}
+
+void KeyGalleriesWindow::selectKey(KeyData* key, CustomGalleryData* gallery)
+{
+    const QModelIndex& i = twKeys->model->getIndex(key, gallery);
+    twKeys->selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 }
 
 void KeyGalleriesWindow::contextMenuEvent(QContextMenuEvent* event)
@@ -149,9 +148,9 @@ void KeyGalleriesWindow::activatedEvent()
 {
     const QModelIndex& index = twKeys->selectionModel()->currentIndex();
     const QVariant& data = index.data(Qt::UserRole);
-    GalleryTreeItem* d = qVariantValue<GalleryTreeItem*>(data);
-    if(d->CustomGallery()) {
-        emit onGallery(d->CustomGallery());
+    GalleryTreeItem* d = qvariant_cast<GalleryTreeItem*>(data);
+    if(d->getCustomGallery()) {
+        emit onGallery(d->getCustomGallery());
     }
 }
 
@@ -163,10 +162,10 @@ void KeyGalleriesWindow::selectedEvent()
 void KeyGalleriesWindow::gotoEvent()
 {
     const QModelIndex& index = twKeys->selectionModel()->currentIndex();
-    const QVariant& data = index.data(Qt::UserRole);
-    GalleryTreeItem* d = qVariantValue<GalleryTreeItem*>(data);
-    if(d->CustomGallery()) {
-        emit onGotoGallery(d->CustomGallery());
+    const QVariant& i = index.data(Qt::UserRole);
+    GalleryTreeItem* item = qvariant_cast<GalleryTreeItem*>(i);
+    if(item->getCustomGallery()) {
+        emit onGotoGallery(item->getCustomGallery());
     }
 }
 
@@ -175,17 +174,17 @@ void KeyGalleriesWindow::editEvent()
     const QModelIndexList& rows = twKeys->selectionModel()->selectedRows();
     foreach(const QModelIndex& index, rows) {
         const QVariant& data = index.data(Qt::UserRole);
-        GalleryTreeItem* d = qVariantValue<GalleryTreeItem*>(data);
-        if(d->Key()) {
-            KeyData* ck = d->Key()->clone();
-            EditKeyDialog* dialog = new EditKeyDialog(this, *ck);
+        GalleryTreeItem* d = qvariant_cast<GalleryTreeItem*>(data);
+        if(d->getKey()) {
+            KeyData* ck = d->getKey()->clone();
+            EditNameDialog* dialog = new EditNameDialog(this, *ck);
             dialog->show();
             dialog->exec();
 
             if(dialog->result() == QDialog::Accepted) {
                 KeyData* pk = KeyHandler::getInstance()->updKey(*ck);
                 if(pk) {
-                    const QModelIndex& i = twKeys->model->GetIndex(pk);
+                    const QModelIndex& i = twKeys->model->getIndex(pk);
                     twKeys->selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
                 }
             }
@@ -198,21 +197,21 @@ void KeyGalleriesWindow::editEvent()
 
 void KeyGalleriesWindow::exitEvent()
 {
-    Config::Self()->IsKeyGalleriesWindow(false);
+    Config::getInstance()->setIsKeyGalleriesWindow(false);
     close();
 }
 
 void KeyGalleriesWindow::addEvent()
 {
     KeyData* key = new KeyData();
-    EditKeyDialog* dialog = new EditKeyDialog(this, *key);
+    EditNameDialog* dialog = new EditNameDialog(this, *key);
     dialog->show();
     dialog->exec();
 
     if(dialog->result() == QDialog::Accepted) {
         KeyData* k = KeyHandler::getInstance()->addKey(*key);
         if(k) {
-            const QModelIndex& i = twKeys->model->GetIndex(k);
+            const QModelIndex& i = twKeys->model->getIndex(k);
             twKeys->selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
         }
     }
@@ -228,17 +227,17 @@ void KeyGalleriesWindow::delEvent()
     const QModelIndexList& rows = twKeys->selectionModel()->selectedRows();
     foreach(const QModelIndex& index, rows) {
         const QVariant& data = index.data(Qt::UserRole);
-        GalleryTreeItem* d = qVariantValue<GalleryTreeItem*>(data);
-        if(d->CustomGallery()) {
-            GalleryTreeItem* td = d->Parent();
-            while(td != NULL && td->Key() == NULL) {
-                td = td->Parent();
+        GalleryTreeItem* d = qvariant_cast<GalleryTreeItem*>(data);
+        if(d->getCustomGallery()) {
+            GalleryTreeItem* td = d->getParent();
+            while(td != NULL && td->getKey() == NULL) {
+                td = td->getParent();
             }
-            galleryKeys.append(td->Key());
-            galleries.append(d->CustomGallery());
+            galleryKeys.append(td->getKey());
+            galleries.append(d->getCustomGallery());
         }
-        if(d->Key()) {
-            keys.append(d->Key());
+        if(d->getKey()) {
+            keys.append(d->getKey());
         }
     }
 
@@ -256,59 +255,58 @@ void KeyGalleriesWindow::delEvent()
     }
 }
 
-void KeyGalleriesWindow::createMenuAndActions()
+void KeyGalleriesWindow::createMenuAndActions(TitleControl* title)
 {
 
-    title->ToolBar()->setVisible(true);
+    title->getToolBar()->setVisible(true);
     mMenu = new QMenu(this);
 
     aAddKey = new QAction("&Add", this);
     aAddKey->setStatusTip("Add new key");
     aAddKey->setIcon(QIcon(":/res/resources/add.png"));
-    title->ToolBar()->addAction(aAddKey);
+    title->getToolBar()->addAction(aAddKey);
     mMenu->addAction(aAddKey);
     connect(aAddKey, SIGNAL(triggered()), this, SLOT(addEvent()));
 
     aEditKey = new QAction("&Edit", this);
     aEditKey->setStatusTip("Edit actve key");
     aEditKey->setIcon(QIcon(":/res/resources/edit.png"));
-    title->ToolBar()->addAction(aEditKey);
+    title->getToolBar()->addAction(aEditKey);
     mMenu->addAction(aEditKey);
     connect(aEditKey, SIGNAL(triggered()), this, SLOT(editEvent()));
 
     aDelKey = new QAction("&Delete", this);
     aDelKey->setStatusTip("Delete selected keys");
     aDelKey->setIcon(QIcon(":/res/resources/del.png"));
-    title->ToolBar()->addAction(aDelKey);
+    title->getToolBar()->addAction(aDelKey);
     mMenu->addAction(aDelKey);
     connect(aDelKey, SIGNAL(triggered()), this, SLOT(delEvent()));
 
-    title->ToolBar()->addSeparator();
+    title->getToolBar()->addSeparator();
     mMenu->addSeparator();
 
     aShowGallery = new QAction("&Show", this);
     aShowGallery->setStatusTip("Show active gallery");
-    aShowGallery->setIcon(QIcon(":/res/resources/view.png"));
-    title->ToolBar()->addAction(aShowGallery);
+    aShowGallery->setIcon(QIcon(":/res/resources/gallery.png"));
+    title->getToolBar()->addAction(aShowGallery);
     mMenu->addAction(aShowGallery);
     connect(aShowGallery, SIGNAL(triggered()), this, SLOT(activatedEvent()));
 
     aGotoGallery = new QAction("&Goto", this);
     aGotoGallery->setStatusTip("Go to active gallery");
     aGotoGallery->setIcon(QIcon(":/res/resources/right.png"));
-    title->ToolBar()->addAction(aGotoGallery);
+    title->getToolBar()->addAction(aGotoGallery);
     mMenu->addAction(aGotoGallery);
     connect(aGotoGallery, SIGNAL(triggered()), this, SLOT(gotoEvent()));
 
     aDelGallery = new QAction("&Delete", this);
     aDelGallery->setStatusTip("Delete selected galleries");
     aDelGallery->setIcon(QIcon(":/res/resources/del.png"));
-    title->ToolBar()->addAction(aDelGallery);
+    title->getToolBar()->addAction(aDelGallery);
     mMenu->addAction(aDelGallery);
     connect(aDelGallery, SIGNAL(triggered()), this, SLOT(delEvent()));
 
-    mMenu->addAction(title->CloseAction());
-    connect(title->CloseAction(), SIGNAL(triggered()), SLOT(exitEvent()));
+    connect(title->getCloseAction(), SIGNAL(triggered()), SLOT(exitEvent()));
 }
 
 void KeyGalleriesWindow::updateButtons()
@@ -318,11 +316,11 @@ void KeyGalleriesWindow::updateButtons()
     const QModelIndexList& rows = twKeys->selectionModel()->selectedRows();
     foreach(const QModelIndex& index, rows) {
         const QVariant& data = index.data(Qt::UserRole);
-        GalleryTreeItem* d = qVariantValue<GalleryTreeItem*>(data);
-        if(d->CustomGallery()) {
+        GalleryTreeItem* d = qvariant_cast<GalleryTreeItem*>(data);
+        if(d->getCustomGallery()) {
             isGallery = true;
         }
-        if(d->Key()) {
+        if(d->getKey()) {
             isKey = true;
         }
         if(isGallery && isKey) {

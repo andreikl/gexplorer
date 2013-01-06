@@ -1,37 +1,37 @@
+#include <QtCore/QMimeData>
 #include <QtCore/QDebug>
 
-#include <QtGui/QMessageBox>
-#include <QtGui/QTreeView>
-#include <QtGui/QMenu>
-
 #include <QtGui/QDragEnterEvent>
-#include <QtGui/QDragMoveEvent>
-#include <QtGui/QDropEvent>
 #include <QtGui/QDrag>
 
-#include "data/customgalleryitemdata.h"
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QComboBox>
+#include <QtWidgets/QTreeView>
+#include <QtWidgets/QToolBar>
+#include <QtWidgets/QMenu>
+
 #include "data/customgallerydata.h"
-#include "data/gallerydata.h"
+#include "data/keydata.h"
 
 #include "handlers/customgalleryhandler.h"
-#include "handlers/galleryhandler.h"
 
+#include "ui/common/galleryitemaction.h"
 #include "ui/common/gallerytreemodel.h"
 #include "ui/common/gallerytreeitem.h"
 
 #include "ui/controls/titlecontrol.h"
 
-#include "ui/dialogs/editcustomgallerydialog.h"
+#include "ui/dialogs/editnamedialog.h"
 
 #include "ui/windows/customgallerieswindow.h"
-
 #include "ui_customgallerieswindow.h"
-#include "ui_titlecontrol.h"
 
-class CustomGalleriesTree: public QTreeView {
+class CustomGalleriesTree: public QTreeView
+{
 
 public:
-    CustomGalleriesTree(QWidget* pParent = NULL): QTreeView(pParent) {
+    CustomGalleriesTree(QWidget* parent): QTreeView(parent), model(NULL)
+    {
         setHeaderHidden(true);
 
         setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -39,43 +39,56 @@ public:
         setDragEnabled(true);
         setDragDropMode(QTreeView::DragDrop);
 
-        pModel = new GalleryTreeModel(Config::ETypeCustomGallery, this);
-        setModel(pModel);
+        reloadModel();
     }
 
-    virtual ~CustomGalleriesTree() {
-        if(!pModel) {
-            delete pModel;
+    virtual ~CustomGalleriesTree()
+    {
+        if(!model) {
+            delete model;
         }
     }
 
+    void reloadModel()
+    {
+        if(model) {
+            delete model;
+        }
+        model = new GalleryTreeModel(Config::ETypeCustomGallery, this);
+        setModel(model);
+    }
+
 protected:
-    void dragEnterEvent(QDragEnterEvent* pValue) {
-        if (pValue->mimeData()->hasFormat(Config::ApplicationSignature())) {
-            QByteArray data = pValue->mimeData()->data(Config::ApplicationSignature());
+    void dragEnterEvent(QDragEnterEvent* value)
+    {
+        if (value->mimeData()->hasFormat(Config::getInstance()->getApplicationSignature())) {
+            QByteArray data = value->mimeData()->data(Config::getInstance()->getApplicationSignature());
             QDataStream dataStream(&data, QIODevice::ReadOnly);
 
             int type = 0;
             dataStream >> type;
             if(type == Config::ETypeGallery) {
-                return pValue->accept();
+                return value->accept();
             }
         }
-        pValue->ignore();
+        value->ignore();
     }
 
-    void dragMoveEvent(QDragMoveEvent* pValue) {
-        pValue->accept();
+    void dragMoveEvent(QDragMoveEvent* value)
+    {
+        value->accept();
     }
 
-    void dragLeaveEvent(QDragLeaveEvent* pValue) {
-        pValue->accept();
+    void dragLeaveEvent(QDragLeaveEvent* value)
+    {
+        value->accept();
     }
 
 protected:
-    void dropEvent(QDropEvent* pValue) {
-        if (pValue->mimeData()->hasFormat(Config::ApplicationSignature())) {
-            QByteArray data = pValue->mimeData()->data(Config::ApplicationSignature());
+    void dropEvent(QDropEvent* value)
+    {
+        if(value->mimeData()->hasFormat(Config::getInstance()->getApplicationSignature())) {
+            QByteArray data = value->mimeData()->data(Config::getInstance()->getApplicationSignature());
             QDataStream dataStream(&data, QIODevice::ReadOnly);
 
             int type = 0;
@@ -84,113 +97,178 @@ protected:
                 int id = 0;
                 dataStream >> id;
 
-                /*GalleryData* pGallery = GalleryHandler::getInstance()->getGalleryById(id);
-                CustomGalleryData* pCustomGallery = new CustomGalleryData();
-                pCustomGallery->setName(pGallery->getSource());
-
-                int n = 1;
-                foreach(GalleryItemData* pItem, pGallery->getItems()) {
-                    CustomGalleryItemData* pCustomItem = new CustomGalleryItemData(*pCustomGallery, *pItem);
-                    QString name = QString("%1").arg(n++, 3, 10, QChar('0'));
-                    pCustomItem->setName(name);
-                }
-
-                CustomGalleryData* pcg = CustomGalleryHandler::getInstance()->addCustomGallery(*pCustomGallery);
-                if(pcg) {
-                    const QModelIndex& i = pModel->GetIndex(pcg);
-                    selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-                }
-
-                delete pCustomGallery;*/
-
                 CustomGalleryData* customGallery = CustomGalleryHandler::getInstance()->addCustomGallery(id);
                 if(customGallery) {
-                    const QModelIndex& i = pModel->GetIndex(customGallery);
+                    const QModelIndex& i = model->getIndex(customGallery);
                     selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
                 }
 
-                return pValue->accept();
+                return value->accept();
             }
         }
-        pValue->ignore();
+        value->ignore();
     }
 
-    void startDrag(Qt::DropActions /*actions*/) {
+    void startDrag(Qt::DropActions /*actions*/)
+    {
         const QModelIndexList& rows = selectionModel()->selectedRows();
         const QModelIndex& index = rows.at(0);
-        const QVariant& data = index.data(Qt::UserRole);
-        GalleryTreeItem* pData = qVariantValue<GalleryTreeItem*>(data);
-        if(pData->CustomGallery()) {
+        const QVariant& i = index.data(Qt::UserRole);
+        GalleryTreeItem* item = qvariant_cast<GalleryTreeItem*>(i);
+        if(item->getCustomGallery()) {
             QByteArray data;
             QDataStream dataStream(&data, QIODevice::WriteOnly);
-            dataStream << Config::ETypeCustomGallery << pData->CustomGallery()->getId();
+            dataStream << Config::ETypeCustomGallery << item->getCustomGallery()->getId();
 
-            QDrag* pDrag = new QDrag(this);
-            pDrag->setMimeData(new QMimeData());
-            pDrag->mimeData()->setData(Config::ApplicationSignature(), data);
-            pDrag->setPixmap(QPixmap(":/res/resources/gallery.png"));
-            pDrag->exec(Qt::CopyAction);
+            QDrag* drag = new QDrag(this);
+            drag->setMimeData(new QMimeData());
+            drag->mimeData()->setData(Config::getInstance()->getApplicationSignature(), data);
+            drag->setPixmap(QPixmap(":/res/resources/gallery.png"));
+            drag->exec(Qt::CopyAction);
         }
     }
 
 public:
-    GalleryTreeModel* pModel;
+    GalleryTreeModel* model;
 };
 
-CustomGalleriesWindow::CustomGalleriesWindow(QWidget* pParent): QDockWidget(pParent), pTitle(NULL), pUi(new Ui::CustomGalleriesWindow) {
-    pUi->setupUi(this);
+CustomGalleriesWindow::CustomGalleriesWindow(QWidget* parent): QDockWidget(parent), ui(new Ui::CustomGalleriesWindow)
+{
+    ui->setupUi(this);
 
-    pTitle =  new TitleControl(this);
-    setTitleBarWidget(pTitle);
+    TitleControl* title =  new TitleControl(this);
+    setTitleBarWidget(title);
 
-    ptwGalleries = new CustomGalleriesTree(this);
-    pUi->plContent->addWidget(ptwGalleries);
+    twGalleries = new CustomGalleriesTree(this);
+    ui->lContent->addWidget(twGalleries);
 
-    connect(ptwGalleries->selectionModel(), SIGNAL(selectionChanged(QItemSelection, QItemSelection)), SLOT(SelectedEvent()));
-    connect(ptwGalleries, SIGNAL(doubleClicked(const QModelIndex&)), SLOT(ActivatedEvent()));
+    connect(twGalleries->selectionModel(), SIGNAL(selectionChanged(QItemSelection, QItemSelection)), SLOT(selectedEvent()));
 
-    CreateMenuAndActions();
-    UpdateButtons();
+    connect(twGalleries, SIGNAL(doubleClicked(const QModelIndex&)), SLOT(activatedEvent()));
+
+    createMenuAndActions(title);
+    updateButtons();
 }
 
-CustomGalleriesWindow::~CustomGalleriesWindow() {
-    delete pUi;
+CustomGalleriesWindow::~CustomGalleriesWindow()
+{
+    delete ui;
 }
 
-void CustomGalleriesWindow::selectGallery(CustomGalleryData* value) {
-    const QModelIndex& i = ptwGalleries->pModel->GetIndex(value);
-    ptwGalleries->selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+void CustomGalleriesWindow::selectGallery(CustomGalleryData* value)
+{
+    const QModelIndex& i = twGalleries->model->getIndex(value);
+    twGalleries->selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 }
 
-void CustomGalleriesWindow::contextMenuEvent(QContextMenuEvent* pEvent) {
-    pmMenu->exec(pEvent->globalPos());
+void CustomGalleriesWindow::contextMenuEvent(QContextMenuEvent* pEvent)
+{
+    mMenu->exec(pEvent->globalPos());
 }
 
-void CustomGalleriesWindow::AddEvent() {
-    CustomGalleryData* pGallery = new CustomGalleryData();
-    EditCustomGalleryDialog* pDialog = new EditCustomGalleryDialog(this, *pGallery);
-    pDialog->show();
-    pDialog->exec();
+void CustomGalleriesWindow::filterChangedEvent(int value)
+{
+    Config::getInstance()->setCustomGalleryFilterType((Config::FilterTypeEnum)value);
 
-    if(pDialog->result() == QDialog::Accepted) {
-        CustomGalleryData* pcg = CustomGalleryHandler::getInstance()->addCustomGallery(*pGallery);
-        if(pcg) {
-            const QModelIndex& i = ptwGalleries->pModel->GetIndex(pcg);
-            ptwGalleries->selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+    twGalleries->reloadModel();
+    connect(twGalleries->selectionModel(), SIGNAL(selectionChanged(QItemSelection, QItemSelection)), SLOT(selectedEvent()));
+
+    updateButtons();
+}
+
+void CustomGalleriesWindow::activatedEvent()
+{
+    const QModelIndex& index = twGalleries->selectionModel()->currentIndex();
+    const QVariant& i = index.data(Qt::UserRole);
+    GalleryTreeItem* item = qvariant_cast<GalleryTreeItem*>(i);
+    if(item->getCustomGallery()) {
+        emit onGallery(item->getCustomGallery());
+    }
+}
+
+void CustomGalleriesWindow::selectedEvent()
+{
+    updateButtons();
+}
+
+void CustomGalleriesWindow::gotoKeyEvent(KeyData* key, CustomGalleryData* gallery)
+{
+    emit onGotoKey(key, gallery);
+}
+
+void CustomGalleriesWindow::gotoEvent()
+{
+    CustomGalleryData* gallery = NULL;
+    const QModelIndexList& rows = twGalleries->selectionModel()->selectedRows();
+    foreach(const QModelIndex& index, rows) {
+        const QVariant& i = index.data(Qt::UserRole);
+        GalleryTreeItem* item = qvariant_cast<GalleryTreeItem*>(i);
+        if(item->getCustomGallery()) {
+            gallery = item->getCustomGallery();
+            break;
         }
     }
-    delete pDialog;
-    delete pGallery;
+
+    emit onGotoKey(gallery->getKeys().at(0), gallery);
 }
 
-void CustomGalleriesWindow::DelEvent() {
+void CustomGalleriesWindow::editEvent()
+{
+    const QModelIndexList& rows = twGalleries->selectionModel()->selectedRows();
+    const QModelIndex& index = rows.at(0);
+    const QVariant& i = index.data(Qt::UserRole);
+    GalleryTreeItem* item = qvariant_cast<GalleryTreeItem*>(i);
+    if(item->getCustomGallery()) {
+        CustomGalleryData* cloneGallery = item->getCustomGallery()->clone();
+        EditNameDialog* dialog = new EditNameDialog(this, *cloneGallery);
+        dialog->show();
+        dialog->exec();
+
+        if(dialog->result() == QDialog::Accepted) {
+            CustomGalleryData* cg = CustomGalleryHandler::getInstance()->updCustomGallery(*cloneGallery);
+            if(cg) {
+                const QModelIndex& i = twGalleries->model->getIndex(cg);
+                twGalleries->selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+            }
+        }
+        delete dialog;
+        delete cloneGallery;
+    }
+}
+
+void CustomGalleriesWindow::exitEvent()
+{
+    Config::getInstance()->setIsCustomGalleriesWindow(false);
+    close();
+}
+
+void CustomGalleriesWindow::addEvent()
+{
+    CustomGalleryData* gallery = new CustomGalleryData();
+    EditNameDialog* dialog = new EditNameDialog(this, *gallery);
+    dialog->show();
+    dialog->exec();
+
+    if(dialog->result() == QDialog::Accepted) {
+        CustomGalleryData* cg = CustomGalleryHandler::getInstance()->addCustomGallery(*gallery);
+        if(cg) {
+            const QModelIndex& i = twGalleries->model->getIndex(cg);
+            twGalleries->selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+        }
+    }
+    delete dialog;
+    delete gallery;
+}
+
+void CustomGalleriesWindow::delEvent()
+{
     QList<CustomGalleryData*> galleries;
-    const QModelIndexList& rows = ptwGalleries->selectionModel()->selectedRows();
+    const QModelIndexList& rows = twGalleries->selectionModel()->selectedRows();
     foreach(const QModelIndex& index, rows) {
-        const QVariant& data = index.data(Qt::UserRole);
-        GalleryTreeItem* pData = qVariantValue<GalleryTreeItem*>(data);
-        if(pData->CustomGallery()) {
-            galleries.append(pData->CustomGallery());
+        const QVariant& i = index.data(Qt::UserRole);
+        GalleryTreeItem* item = qvariant_cast<GalleryTreeItem*>(i);
+        if(item->getCustomGallery()) {
+            galleries.append(item->getCustomGallery());
         }
     }
 
@@ -203,103 +281,94 @@ void CustomGalleriesWindow::DelEvent() {
     }
 }
 
-void CustomGalleriesWindow::EditEvent() {
-    const QModelIndexList& rows = ptwGalleries->selectionModel()->selectedRows();
-    const QModelIndex& index = rows.at(0);
-    const QVariant& data = index.data(Qt::UserRole);
-    GalleryTreeItem* pData = qVariantValue<GalleryTreeItem*>(data);
-    if(pData->CustomGallery()) {
-        CustomGalleryData* pCloneGallery = pData->CustomGallery()->clone();
-        EditCustomGalleryDialog* pDialog = new EditCustomGalleryDialog(this, *pCloneGallery);
-        pDialog->show();
-        pDialog->exec();
+void CustomGalleriesWindow::createMenuAndActions(TitleControl* title)
+{
 
-        if(pDialog->result() == QDialog::Accepted) {
-            CustomGalleryData* pcg = CustomGalleryHandler::getInstance()->updCustomGallery(*pCloneGallery);
-            if(pcg) {
-                const QModelIndex& i = ptwGalleries->pModel->GetIndex(pcg);
-                ptwGalleries->selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-            }
-        }
-        delete pDialog;
-        delete pCloneGallery;
-    }
+    title->getToolBar()->setVisible(true);
+    mMenu = new QMenu(this);
+
+    aAdd = new QAction("&Add", this);
+    aAdd->setStatusTip("Add new custom gallery");
+    aAdd->setIcon(QIcon(":/res/resources/add.png"));
+    title->getToolBar()->addAction(aAdd);
+    mMenu->addAction(aAdd);
+    connect(aAdd, SIGNAL(triggered()), this, SLOT(addEvent()));
+
+    aShow = new QAction("&Show", this);
+    aShow->setStatusTip("Show active custom gallery");
+    aShow->setIcon(QIcon(":/res/resources/gallery.png"));
+    title->getToolBar()->addAction(aShow);
+    mMenu->addAction(aShow);
+    connect(aShow, SIGNAL(triggered()), this, SLOT(activatedEvent()));
+
+    mGotoMenu = new QMenu(this);
+    mGotoMenu->menuAction()->setText("&Goto ...");
+    mGotoMenu->menuAction()->setStatusTip("Selects key Items");
+    mGotoMenu->menuAction()->setIcon(QIcon(":/res/resources/right.png"));
+    title->getToolBar()->addAction(mGotoMenu->menuAction());
+    mMenu->addAction(mGotoMenu->menuAction());
+    connect(mGotoMenu->menuAction(), SIGNAL(triggered()), this, SLOT(gotoEvent()));
+
+    aEdit = new QAction("&Edit", this);
+    aEdit->setStatusTip("Edit actve custom gallery");
+    aEdit->setIcon(QIcon(":/res/resources/edit.png"));
+    title->getToolBar()->addAction(aEdit);
+    mMenu->addAction(aEdit);
+    connect(aEdit, SIGNAL(triggered()), this, SLOT(editEvent()));
+
+    cbFilter = new QComboBox(this);
+    cbFilter->setMinimumSize(60, 30);
+    cbFilter->addItem("All");
+    cbFilter->addItem("Sorted");
+    cbFilter->addItem("Unsorted");
+    cbFilter->setCurrentIndex(Config::getInstance()->getCustomGalleryFilterType());
+    title->getToolBar()->addWidget(cbFilter);
+    connect(cbFilter, SIGNAL(currentIndexChanged(int)), this, SLOT(filterChangedEvent(int)));
+
+    aDel = new QAction("&Delete", this);
+    aDel->setStatusTip("Delete selected custom galleries");
+    aDel->setIcon(QIcon(":/res/resources/del.png"));
+    title->getToolBar()->addAction(aDel);
+    mMenu->addAction(aDel);
+    connect(aDel, SIGNAL(triggered()), this, SLOT(delEvent()));
+
+    connect(title->getCloseAction(), SIGNAL(triggered()), SLOT(exitEvent()));
 }
 
-void CustomGalleriesWindow::ExitEvent() {
-    Config::Self()->IsCustomGalleriesWindow(false);
-    close();
-}
-
-void CustomGalleriesWindow::ActivatedEvent() {
-    const QModelIndex& index = ptwGalleries->selectionModel()->currentIndex();
-    const QVariant& data = index.data(Qt::UserRole);
-    GalleryTreeItem* pData = qVariantValue<GalleryTreeItem*>(data);
-    if(pData->CustomGallery()) {
-        emit OnGallery(pData->CustomGallery());
-    }
-}
-
-void CustomGalleriesWindow::SelectedEvent() {
-    UpdateButtons();
-}
-
-void CustomGalleriesWindow::CreateMenuAndActions() {
-
-    pTitle->ToolBar()->setVisible(true);
-    pmMenu = new QMenu(this);
-
-    paAdd = new QAction("&Add", this);
-    paAdd->setStatusTip("Add new custom gallery");
-    paAdd->setIcon(QIcon(":/res/resources/add.png"));
-    pTitle->ToolBar()->addAction(paAdd);
-    pmMenu->addAction(paAdd);
-    connect(paAdd, SIGNAL(triggered()), this, SLOT(AddEvent()));
-
-    paShow = new QAction("&Show", this);
-    paShow->setStatusTip("Show active custom gallery");
-    paShow->setIcon(QIcon(":/res/resources/view.png"));
-    pTitle->ToolBar()->addAction(paShow);
-    pmMenu->addAction(paShow);
-    connect(paShow, SIGNAL(triggered()), this, SLOT(ActivatedEvent()));
-
-    paEdit = new QAction("&Edit", this);
-    paEdit->setStatusTip("Edit actve custom gallery");
-    paEdit->setIcon(QIcon(":/res/resources/edit.png"));
-    pTitle->ToolBar()->addAction(paEdit);
-    pmMenu->addAction(paEdit);
-    connect(paEdit, SIGNAL(triggered()), this, SLOT(EditEvent()));
-
-    paDel = new QAction("&Delete", this);
-    paDel->setStatusTip("Delete selected custom galleries");
-    paDel->setIcon(QIcon(":/res/resources/del.png"));
-    pTitle->ToolBar()->addAction(paDel);
-    pmMenu->addAction(paDel);
-    connect(paDel, SIGNAL(triggered()), this, SLOT(DelEvent()));
-
-    pmMenu->addAction(pTitle->CloseAction());
-    connect(pTitle->CloseAction(), SIGNAL(triggered()), SLOT(ExitEvent()));
-}
-
-void CustomGalleriesWindow::UpdateButtons() {
-    bool isFind = false;
-    const QModelIndexList& rows = ptwGalleries->selectionModel()->selectedRows();
+void CustomGalleriesWindow::updateButtons()
+{
+    CustomGalleryData* gallery = NULL;
+    const QModelIndexList& rows = twGalleries->selectionModel()->selectedRows();
     foreach(const QModelIndex& index, rows) {
-        const QVariant& data = index.data(Qt::UserRole);
-        GalleryTreeItem* pData = qVariantValue<GalleryTreeItem*>(data);
-        if(pData->CustomGallery()) {
-            isFind = true;
+        const QVariant& i = index.data(Qt::UserRole);
+        GalleryTreeItem* item = qvariant_cast<GalleryTreeItem*>(i);
+        if(item->getCustomGallery()) {
+            gallery = item->getCustomGallery();
             break;
         }
     }
 
-    if(isFind) {
-        paShow->setEnabled(true);
-        paEdit->setEnabled(true);
-        paDel->setEnabled(true);
+    if(gallery) {
+        if(gallery->getKeys().count() > 0) {
+            mGotoMenu->clear();
+            mGotoMenu->setEnabled(true);
+            foreach(KeyData* i, gallery->getKeys()) {
+                GalleryItemAction* action = new GalleryItemAction(this, i, gallery);
+                action->setText(i->getName());
+                connect(action, SIGNAL(onActivateKey(KeyData*, CustomGalleryData*)), this, SLOT(gotoKeyEvent(KeyData*, CustomGalleryData*)));
+                mGotoMenu->addAction(action);
+            }
+        } else {
+            mGotoMenu->setEnabled(false);
+        }
+
+        aShow->setEnabled(true);
+        aEdit->setEnabled(true);
+        aDel->setEnabled(true);
     } else {
-        paShow->setEnabled(false);
-        paEdit->setEnabled(false);
-        paDel->setEnabled(false);
+        aShow->setEnabled(false);
+        mGotoMenu->setEnabled(false);
+        aEdit->setEnabled(false);
+        aDel->setEnabled(false);
     }
 }

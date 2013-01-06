@@ -9,7 +9,6 @@
         <file>resources/edit.png</file>
         <file>resources/gallery.png</file>
         <file>resources/gallery_accept.png</file>
-        <file>resources/gallery_cancel.png</file>
         <file>resources/left.png</file>
         <file>resources/right.png</file>
         <file>resources/rotate_left.png</file>
@@ -21,5 +20,8 @@
         <file>resources/pause.png</file>
         <file>resources/stop.png</file>
         <file>resources/unite.png</file>
+        <file>resources/gallery_delete.png</file>
+        <file>resources/reload.png</file>
+        <file>resources/split.png</file>
     </qresource>
 </RCC>

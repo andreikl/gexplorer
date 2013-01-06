@@ -1,42 +1,31 @@
 #ifndef DOWNLOADS_WINDOW_H
 #define DOWNLOADS_WINDOW_H
 
-#include <QtGui/QStyledItemDelegate>
-#include <QtGui/QDockWidget>
+#include <QtWidgets/QDockWidget>
 
-#include "application.h"
+class DownloadHandler;
 
-namespace Ui {
+namespace Ui
+{
     class DownloadsWindow;
 }
 
-class DownloadsWindowDelegate: public QStyledItemDelegate {
+class DownloadsWindow: public QDockWidget
+{
     Q_OBJECT
 
 public:
-    DownloadsWindowDelegate(QWidget* pParent);
-    virtual ~DownloadsWindowDelegate();
-
-public:
-    void paint(QPainter* pPainter, const QStyleOptionViewItem& option, const QModelIndex& index) const;
-
-};
-
-class DownloadsWindow: public QDockWidget {
-    Q_OBJECT
-
-public:
-    explicit DownloadsWindow(QWidget* pParent = NULL);
+    explicit DownloadsWindow(QWidget* parent);
     virtual ~DownloadsWindow();
 
 private slots:
-    void dequeueEvent(DownloadHandler* pDownloader);
-    void enqueueEvent(DownloadHandler* pDownloader);
+    void dequeueEvent(DownloadHandler* downloader);
+    void enqueueEvent(DownloadHandler* downloader);
     void dataEvent(uint percent);
-    void ExitEvent();
+    void exitEvent();
 
 private:
-    Ui::DownloadsWindow* pUi;
+    Ui::DownloadsWindow* ui;
 
 };
 

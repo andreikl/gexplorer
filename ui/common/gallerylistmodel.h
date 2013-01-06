@@ -15,49 +15,58 @@ class GalleryListItem;
 class GalleryItemData;
 class GalleryData;
 
-class GalleryListModel: public QAbstractListModel {
+class GalleryListModel: public QAbstractListModel
+{
     Q_OBJECT
 
 public:
-    GalleryListModel(GalleryData& gallery, int size, QObject* pParent = NULL);
-    GalleryListModel(CustomGalleryData& gallery, int size, QObject* pParent = NULL);
+    GalleryListModel(CustomGalleryData& gallery, int size, QObject* parent);
+    GalleryListModel(GalleryData& gallery, int size, QObject* parent);
     virtual ~GalleryListModel();
 
 public:
-    Config::ItemTypeEnum Type() const;
-    QSortFilterProxyModel* Proxy();
+    Config::ItemTypeEnum getType() const;
+    QSortFilterProxyModel* getProxy();
 
 public:
-    QModelIndex GetCurrentItem(int row) const;
-    QModelIndex GetBackItem(int row) const;
-    QModelIndex GetNextItem(int row) const;
-    void ChangeItemsSize(int size);
+    QModelIndex getIndexByItem(CustomGalleryItemData* item);
+    QModelIndex getIndexByItem(GalleryItemData* item);
+    QModelIndex getCurrentItem(int row) const;
+    QModelIndex getBackItem(int row) const;
+    QModelIndex getNextItem(int row) const;
+
+public:
+    void changeItemsSize(int size);
 
 // QAbstractListModel
 public:
-    Qt::ItemFlags flags(const QModelIndex& index) const;
-    int rowCount(const QModelIndex& parent = QModelIndex()) const;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
+    int rowCount(const QModelIndex& parent = QModelIndex()) const;
+    Qt::ItemFlags flags(const QModelIndex& index) const;
 
 private slots:
+    void delGalleryItemEvent(GalleryItemData* item);
+
     void updCustomGalleryItemAngleEvent(CustomGalleryItemData* item);
     void updCustomGalleryItemEvent(CustomGalleryItemData* item);
     void addCustomGalleryItemEvent(CustomGalleryItemData* item);
     void delCustomGalleryItemEvent(CustomGalleryItemData* item);
+
     void loadEvent();
 
 private:
-    GalleryListItem* GetItemByGalleryItem(GalleryItemData* pItem);
-    GalleryListItem* GetItemByGalleryItem(CustomGalleryItemData* pItem);
+    GalleryListItem* getItemByGalleryItem(CustomGalleryItemData* item);
+    GalleryListItem* getItemByGalleryItem(GalleryItemData* item);
 
 private:
     Config::ItemTypeEnum type;
-    void* pGallery;
+    void* gallery;
     int size;
 
 private:
-    QSortFilterProxyModel* pProxy;
     QList<GalleryListItem*> items;
+    QSortFilterProxyModel* proxy;
+
 };
 
 #endif // GALLERYLISTMODEL_H

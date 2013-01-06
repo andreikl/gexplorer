@@ -1,101 +1,91 @@
 #ifndef BROWSERCONTROL_H
 #define BROWSERCONTROL_H
 
-#include <QtWebKit/QWebView>
+#include <QtWidgets/QWidget>
 
+class BrowserViewControl;
 class TitleControl;
 class GalleryData;
 
-namespace Ui {
+QT_BEGIN_NAMESPACE
+class QWebElement;
+class QLineEdit;
+class QMenu;
+QT_END_NAMESPACE
+
+namespace Ui
+{
     class BrowserControl;
 }
 
-class BrowserHrefItem {
-public:
-    BrowserHrefItem(const QRect& rect, const QString& url) {
-        this->rect = rect;
-        this->url = url;
-    }
-
-public:
-    QRect rect;
-    QString url;
-};
-
-class BrowserView: public QWebView {
+class BrowserControl: public QWidget
+{
     Q_OBJECT
 
-public:
-    BrowserView(QWidget* pWidget);
-    virtual ~BrowserView();
-
-signals:
-    void OnTopHref();
+    friend class BrowserViewControl;
 
 public:
-    const QString& TopHref();
-
-protected:
-    void mouseMoveEvent(QMouseEvent* pEvent);
-
-private slots:
-    void LoadStartedEvent();
-    void LoadFinishedEvent();
-
-private:
-    QString topHref;
-    QList<BrowserHrefItem> hrefs;
-};
-
-class BrowserControl: public QWidget {
-    Q_OBJECT
-
-public:
-    explicit BrowserControl(QWidget* pParent = NULL);
+    explicit BrowserControl(QWidget* parent);
     virtual ~BrowserControl();
 
 public:
-    TitleControl* Title();
+    TitleControl* getTitle();
 
 public:
-    void GoTo(GalleryData* pGallery);
-    void GoTo(const QString& url);
+    void goTo(GalleryData* gallery);
+    void goTo(const QString& url);
 
 protected:
-    bool eventFilter(QObject* pObject, QEvent* pEvent);
-    void contextMenuEvent(QContextMenuEvent* pEvent);
+    //bool eventFilter(QObject* object, QEvent* event);
+    void contextMenuEvent(QContextMenuEvent* event);
 
 private slots:
-    void AddGalleryEvent();
-    void AddItemsEvent();
+    void addDeletedGalleryEvent();
 
-private slots:
-    void TopHrefEvent();
+    void addGalleryEvent();
+    void addStreamGalleryEvent();
+    void addItemsEvent();
 
-private:
-    void SearchSameUrls(QWebElement& element, const QString& path, const QString& ext, GalleryData* pData);
-    void ParseUrl(const QString& url, QString& path, QString& ext);
-    bool IsContainsFile(GalleryData* pData, const QString& file);
-
-private:
-    void CreateMenuAndActions();
-    void UpdateButtons();
+    void topHrefEvent();
+    void openEvent();
+    void backEvent();
+    void goEvent();
 
 private:
-    GalleryData* pGallery;
+    void searchSameUrls(QWebElement& element, const QString& path, const QString& ext, GalleryData* data);
+    void parseUrl(const QString& url, QString& path, QString& ext);
+    bool isContainsFile(GalleryData* data, const QString& file);
 
 private:
-    QMenu* pmMenu;
-    QAction* paAdd;
-    QAction* paAddItem;
-    QAction* paReloadItem;
+    void createMenuAndActions();
+    void updateButtons();
 
 private:
-    TitleControl* pTitle;
-    BrowserView* pWeb;
+    GalleryData* gallery;
 
 private:
-    Ui::BrowserControl* pUi;
+    BrowserViewControl* web;
+    TitleControl* title;
+    QLineEdit* lineEdit;
+    QString topHref;
+    int menuX;
+    int menuY;
+
+private:
+    QAction* aAddDeleted;
+
+    QAction* aAdd;
+    QAction* aAddStream;
+    QAction* aAddItem;
+
+    QAction* aOpen;
+    QAction* aBack;
+    QAction* aGo;
+    QMenu* mMenu;
+
+private:
+    Ui::BrowserControl* ui;
+
 };
 
 #endif // BROWSERCONTROL_H

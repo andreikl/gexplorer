@@ -1,66 +1,80 @@
 #ifndef GALLERYCONTROL_H
 #define GALLERYCONTROL_H
 
-#include <QtGui/QWidget>
+#include <QtWidgets/QWidget>
+
+class CustomGalleryItemData;
+class GalleryListModel;
+class GalleryItemData;
+class TitleControl;
+class GalleryData;
+class GalleryList;
 
 QT_BEGIN_NAMESPACE
 class QComboBox;
 class QMenu;
 QT_END_NAMESPACE
 
-class GalleryListModel;
-class TitleControl;
-class GalleryData;
-class GalleryList;
-
-namespace Ui {
+namespace Ui
+{
     class GalleryControl;
 }
 
-class GalleryControl: public QWidget {
+class GalleryControl: public QWidget
+{
     Q_OBJECT
 
 public:
-    explicit GalleryControl(QWidget* pParent = NULL);
+    explicit GalleryControl(QWidget* parent);
     virtual ~GalleryControl();
 
 public:
-    GalleryListModel* Model();
-    TitleControl* Title();
+    const GalleryData* getGallery() const;
+    GalleryListModel* getModel();
+    TitleControl* getTitle();
 
 public:
-    void Gallery(GalleryData* pValue);
-    const GalleryData* Gallery() const;
+    void selectItem(GalleryItemData* value);
+    void setGallery(GalleryData* value);
+
+signals:
+    void onGotoItem(CustomGalleryItemData* value);
 
 protected:
-    void contextMenuEvent(QContextMenuEvent* pEvent);
+    void contextMenuEvent(QContextMenuEvent* event);
 
 private slots:
-    void IconSizeChangedEvent(int value);
-    void ShowEvent();
+    void iconSizeChangedEvent(int value);
+    void selectedEvent();
+    void showEvent();
 
-private slots:
-    void SelectedEvent();
+    void gotoEvent(CustomGalleryItemData* gallery);
+    void gotoEvent();
 
-private:
-    void CreateMenuAndActions();
-    void UpdateButtons();
-
-private:
-    GalleryData* pData;
+    void delEvent();
 
 private:
-    QMenu* pmMenu;
-    QComboBox* pcbSize;
-    QAction* paShow;
+    void createMenuAndActions();
+    void updateButtons();
 
 private:
-    GalleryListModel* pModel;
-    TitleControl* pTitle;
-    GalleryList* pList;
+    GalleryData* data;
 
 private:
-    Ui::GalleryControl* pUi;
+    QMenu* mMenu;
+
+    QComboBox* cbSize;
+    QAction* aShow;
+    QMenu* mGotoMenu;
+    QAction* aDel;
+
+private:
+    GalleryListModel* model;
+    TitleControl* title;
+    GalleryList* list;
+
+private:
+    Ui::GalleryControl* ui;
 };
 
 #endif // GALLERYCONTROL_H

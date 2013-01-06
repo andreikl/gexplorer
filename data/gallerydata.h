@@ -2,6 +2,8 @@
 #define GALLERY_DATA_H
 
 #include <QtCore/QMetaType>
+#include <QtCore/QString>
+#include <QtCore/QList>
 
 #include "data/basedata.h"
 
@@ -14,7 +16,8 @@ class GalleryData: public BaseData
 public:
     enum GalleryTypeEnum {
         WebGallery = 1,
-        FileGallery
+        FileGallery,
+        DeletedGallery
     };
 
 public:
@@ -37,7 +40,7 @@ public:
 
 public:
     bool isAllContains() const;
-    GalleryData* clone() const;
+    GalleryData* clone(bool isItems = true) const;
 
 private:
     QList<GalleryItemData*> items;

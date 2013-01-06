@@ -1,34 +1,36 @@
 #ifndef TITLE_CONTROL_H
 #define TITLE_CONTROL_H
 
-#include <QtGui/QToolBar>
-#include <QtGui/QWidget>
+#include <QtWidgets/QWidget>
 
-namespace Ui {
+QT_BEGIN_NAMESPACE
+class QToolBar;
+QT_END_NAMESPACE
+
+namespace Ui
+{
     class TitleControl;
 }
 
-class TitleControl: public QWidget {
+class TitleControl: public QWidget
+{
     Q_OBJECT
 
 public:
-    explicit TitleControl(QWidget* pParent);
+    explicit TitleControl(QWidget* parent);
     virtual ~TitleControl();
 
 public:
-    QAction* CloseAction();
-    QToolBar* ToolBar();
+    QAction* getCloseAction();
+    QToolBar* getToolBar();
 
 protected:
-    QToolBar* ptbSystemBar;
-    QToolBar* ptbToolBar;
+    QToolBar* tbSystemBar;
+    QToolBar* tbToolBar;
+    QAction* aClose;
 
 private:
-    QAction* paClose;
-
-private:
-    Ui::TitleControl* pUi;
-
+    Ui::TitleControl* ui;
 };
 
 #endif // TITLEBAR_H

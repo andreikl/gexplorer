@@ -9,6 +9,10 @@ class GalleryItemData;
 class DownloadHandler;
 class ExtensionData;
 
+QT_BEGIN_NAMESPACE
+class QNetworkAccessManager;
+QT_END_NAMESPACE
+
 class Application: public QObject
 {
     Q_OBJECT
@@ -40,12 +44,14 @@ private slots:
     void finishEvent(DownloadHandler* pSender, bool res);
 
 private:
-    static Application* app;
-
-private:
     QList<ExtensionData*> extensions;
     QQueue<DownloadHandler*> queue;
+    QNetworkAccessManager* network;
+
     int activeDownload;
+
+private:
+    static Application* app;
 };
 
 #endif // APPLICATION_H

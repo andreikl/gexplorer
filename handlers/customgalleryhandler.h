@@ -8,6 +8,16 @@ class CustomGalleryData;
 class GalleryItemData;
 class Application;
 
+struct CustomGalleryItemName {
+    CustomGalleryItemData* item;
+    QString name;
+};
+
+struct CustomGalleryItemId {
+    int gid;
+    int id;
+};
+
 class CustomGalleryHandler: public QObject
 {
     friend class GalleryHandler;
@@ -16,7 +26,7 @@ class CustomGalleryHandler: public QObject
     Q_OBJECT
 
 public:
-    static CustomGalleryHandler* createInstance(Application* app);
+    static CustomGalleryHandler* createInstance();
     static CustomGalleryHandler* getInstance();
 
 private:
@@ -29,7 +39,8 @@ public:
     const QList<CustomGalleryData*>& getCustomGalleries() const;
 
 public:
-    CustomGalleryItemData* addToCustomGallery(CustomGalleryData& value, int galleryId, int itemId);
+    QList<CustomGalleryItemData*> addToCustomGallery(CustomGalleryData& value, QList<CustomGalleryItemId>& ids);
+
     CustomGalleryData* addCustomGallery(const CustomGalleryData& value);
     CustomGalleryData* addCustomGallery(int galleryId);
 
@@ -38,24 +49,28 @@ public:
     bool delCustomGallery(CustomGalleryData& value);
 
 public:
-    bool updCustomGalleryItemName(CustomGalleryItemData& item, const QString& name);
-    bool updCustomGalleryItemCustomId(CustomGalleryItemData& item, int customId);
+    bool updCustomGalleryItemNames(QList<CustomGalleryItemName>& names);
+
+    bool updCustomGalleryItemUnite(CustomGalleryItemData& item, int customId);
+    bool updCustomGalleryItemSplit(CustomGalleryItemData& item);
+
     bool updCustomGalleryItemAngle(CustomGalleryItemData& item, int angle);
     CustomGalleryData* updCustomGallery(CustomGalleryData& value);
 
-signals:
-    void onAddCustomGalleryItem(CustomGalleryItemData* pValue);
-    void onAddCustomGallery(CustomGalleryData* pValue);
-    void onDelCustomGalleryItem(CustomGalleryItemData* pValue);
-    void onDelCustomGallery(CustomGalleryData* pValue);
-    void onUpdCustomGalleryItemAngle(CustomGalleryItemData* pValue);
-    void onUpdCustomGalleryItem(CustomGalleryItemData* pValue);
-    void onUpdCustomGallery(CustomGalleryData* pValue);
-
-private:
-    CustomGalleryItemData* getCustomGalleryItemById(int galleryId, int id) const;
+public:
+    CustomGalleryItemData* getCustomGalleryItemById(int galleryId, int id);
     CustomGalleryItemData* getCustomGalleryItemById(int id) const;
     CustomGalleryData* getCustomGalleryById(int id) const;
+
+signals:
+    void onAddCustomGalleryItem(CustomGalleryItemData* value);
+    void onAddCustomGallery(CustomGalleryData* value);
+    void onDelCustomGalleryItem(CustomGalleryItemData* value);
+    void onDelCustomGallery(CustomGalleryData* value);
+
+    void onUpdCustomGallery(CustomGalleryData* value, const char* name);
+    void onUpdCustomGalleryItemAngle(CustomGalleryItemData* value);
+    void onUpdCustomGalleryItem(CustomGalleryItemData* value);
 
 private:
     static CustomGalleryHandler* handler;

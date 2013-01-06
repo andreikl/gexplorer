@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>ViewerDialog</class>
  <widget class="QDialog" name="ViewerDialog">
@@ -18,7 +19,7 @@
   <property name="windowTitle">
    <string>Viewer</string>
   </property>
-  <layout class="QVBoxLayout" name="plLayout">
+  <layout class="QVBoxLayout" name="lLayout">
    <property name="spacing">
     <number>0</number>
    </property>

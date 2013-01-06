@@ -1,10 +1,11 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define APP_NAME "Gallery Explorer"
+#include <QtCore/QString>
 
-#include <QtCore/QSettings>
-#include <QtCore/QStringList>
+QT_BEGIN_NAMESPACE
+class QSettings;
+QT_END_NAMESPACE
 
 class Config {
 public:
@@ -12,6 +13,13 @@ public:
         ELargeSize = 300,
         EMediumSize = 200,
         ESmallSize = 100
+    };
+
+public:
+    enum FilterTypeEnum {
+        EAllFilter = 0,
+        ESortedFilter,
+        EUnsortedFilter
     };
 
 public:
@@ -24,66 +32,66 @@ public:
         ETypeKey
     };
 
+public:
+    static Config* createInstance(const QString& path);
+    static Config* getInstance();
+
 private:
-    Config(const QString& path);
+    Config();
 
 public:
     virtual ~Config();
 
 public:
-    static Config* Self();
-    static Config* Create(const QString& path);
-    static void Delete();
+    static const char* getApplicationSignature();
+    static const char* getApplicationName();
 
 public:
-    static const char* ApplicationName();
-    static const char* ApplicationSignature();
+    FilterTypeEnum getCustomGalleryFilterType() const;
+    FilterTypeEnum getGalleryFilterType() const;
+    IconSizeEnum getCustomGalleryIconSize() const;
+    IconSizeEnum getGalleryIconSize() const;
+    int getActiveDownloadCount() const;
 
-// common
-// download
 public:
-    int ActiveDownloadCount() const;
-    void ActiveDownloadCount(int value);
+    bool getIsCustomGalleriesWindow() const;
+    bool getIsKeyGalleriesWindow() const;
+    bool getIsGalleriesWindow() const;
+    bool getIsDownloadsWindow() const;
 
-// ui
 public:
-    IconSizeEnum GalleryIconSize() const;
-    void GalleryIconSize(IconSizeEnum size);
-    IconSizeEnum CustomGalleryIconSize() const;
-    void CustomGalleryIconSize(IconSizeEnum size);
+    void setCustomGalleryFilterType(FilterTypeEnum filter);
+    void setGalleryFilterType(FilterTypeEnum filter);
+    void setCustomGalleryIconSize(IconSizeEnum size);
+    void setGalleryIconSize(IconSizeEnum size);
+    void setActiveDownloadCount(int value);
 
-// ui
 public:
-    bool IsKeyGalleriesWindow() const;
-    void IsKeyGalleriesWindow(bool value);
-    bool IsCustomGalleriesWindow() const;
-    void IsCustomGalleriesWindow(bool value);
-    bool IsGalleriesWindow() const;
-    void IsGalleriesWindow(bool value);
-    bool IsDownloadsWindow() const;
-    void IsDownloadsWindow(bool value);
+    void setIsCustomGalleriesWindow(bool value);
+    void setIsKeyGalleriesWindow(bool value);
+    void setIsGalleriesWindow(bool value);
+    void setIsDownloadsWindow(bool value);
 
-// common
-// download
 private:
+    FilterTypeEnum customGalleryFilterType;
+    FilterTypeEnum galleryFilterType;
+
+    IconSizeEnum customGalleryIconSize;
+    IconSizeEnum galleryIconSize;
+
     int activeDownloadCount;
 
-// ui
 private:
-    IconSizeEnum galleryIconSize;
-    IconSizeEnum customGalleryIconSize;
-
-// ui
-private:
-    bool isKeyGalleriesWindow;
     bool isCustomGalleriesWindow;
+    bool isKeyGalleriesWindow;
     bool isGalleriesWindow;
     bool isDownloadsWindow;
 
 private:
-    static Config* pConfig;
-    QSettings* pHandle;
+    QSettings* handle;
 
+private:
+    static Config* instance;
 };
 
 #endif // CONFIG_H

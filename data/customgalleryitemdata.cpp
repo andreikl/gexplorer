@@ -4,6 +4,9 @@
 
 CustomGalleryItemData::CustomGalleryItemData(CustomGalleryData& gallery, GalleryItemData& data): item(data), name(""), customId(0), angle(0), id(0)
 {
+    width = 0;
+    height = 0;
+
     this->gallery = &gallery;
     this->gallery->items.append(this);
 }
@@ -18,12 +21,12 @@ const QList<CustomGalleryItemData*>& CustomGalleryItemData::getChildren() const
     return children;
 }
 
-const CustomGalleryData* CustomGalleryItemData::getCustomGallery() const
+CustomGalleryData* CustomGalleryItemData::getCustomGallery() const
 {
     return gallery;
 }
 
-const GalleryItemData& CustomGalleryItemData::getItem() const
+GalleryItemData& CustomGalleryItemData::getItem() const
 {
     return item;
 }

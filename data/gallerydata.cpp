@@ -4,6 +4,7 @@
 
 GalleryData::GalleryData(GalleryTypeEnum type)
 {
+    this->id = 0;
     this->type = type;
 }
 
@@ -64,14 +65,16 @@ bool GalleryData::isAllContains() const
     return true;
 }
 
-GalleryData* GalleryData::clone() const
+GalleryData* GalleryData::clone(bool isItems) const
 {
     GalleryData* gallery = new GalleryData(type);
     gallery->id = id;
     gallery->source = source;
     gallery->path = path;
-    foreach(GalleryItemData* item, items) {
-        item->clone(gallery);
+    if(isItems) {
+        foreach(GalleryItemData* item, items) {
+            item->clone(gallery);
+        }
     }
     return gallery;
 }

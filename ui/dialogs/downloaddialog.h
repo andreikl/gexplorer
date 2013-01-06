@@ -1,27 +1,39 @@
 #ifndef DOWNLOADDIALOG_H
 #define DOWNLOADDIALOG_H
 
-#include <QtGui/QDialog>
+#include <QtWidgets/QDialog>
 
 class GalleryData;
 
-namespace Ui {
+QT_BEGIN_NAMESPACE
+class QListWidgetItem;
+QT_END_NAMESPACE
+
+namespace Ui
+{
     class DownloadDialog;
 }
 
-class DownloadDialog : public QDialog {
+class DownloadDialog: public QDialog
+{
     Q_OBJECT
 
 public:
-    explicit DownloadDialog(QWidget* pParent, GalleryData& data);
+    explicit DownloadDialog(QWidget* parent, GalleryData& data);
     virtual ~DownloadDialog();
 
 public:
-    QString Url();
-    QString Path();
+    QString getPath();
+
+private slots:
+    void itemChangedEvent(QListWidgetItem* item);
+    void itemSelectedEvent();
+    void itemDelEvent();
+    void itemAddEvent();
 
 private:
-    Ui::DownloadDialog* pUi;
+    Ui::DownloadDialog* ui;
+    GalleryData* data;
 };
 
 #endif // DOWNLOADDIALOG_H

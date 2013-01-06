@@ -1,15 +1,16 @@
 #ifndef KEYGALLERIESWINDOW_H
 #define KEYGALLERIESWINDOW_H
 
-#include <QtGui/QDockWidget>
-
-QT_BEGIN_NAMESPACE
-class QMenu;
-QT_END_NAMESPACE
+#include <QtWidgets/QDockWidget>
 
 class CustomGalleryData;
 class TitleControl;
 class KeysTree;
+class KeyData;
+
+QT_BEGIN_NAMESPACE
+class QMenu;
+QT_END_NAMESPACE
 
 namespace Ui
 {
@@ -23,6 +24,9 @@ class KeyGalleriesWindow: public QDockWidget
 public:
     explicit KeyGalleriesWindow(QWidget* parent);
     virtual ~KeyGalleriesWindow();
+
+public:
+    void selectKey(KeyData* key, CustomGalleryData* gallery);
 
 signals:
     void onGotoGallery(CustomGalleryData* value);
@@ -41,20 +45,19 @@ private slots:
     void delEvent();
 
 private:
-    void createMenuAndActions();
+    void createMenuAndActions(TitleControl* title);
     void updateButtons();
 
 private:
-    QMenu* mMenu;
-    QAction* aAddKey;
-    QAction* aEditKey;
-    QAction* aDelKey;
     QAction* aShowGallery;
-    QAction* aDelGallery;
     QAction* aGotoGallery;
+    QAction* aDelGallery;
+    QAction* aEditKey;
+    QAction* aAddKey;
+    QAction* aDelKey;
+    QMenu* mMenu;
 
 private:
-    TitleControl* title;
     KeysTree* twKeys;
 
 private:

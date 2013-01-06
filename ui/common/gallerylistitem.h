@@ -10,30 +10,40 @@
 class CustomGalleryItemData;
 class GalleryItemData;
 
-class GalleryListItem {
+class GalleryListItem
+{
+private:
+    GalleryListItem(int size);
+
 public:
-    GalleryListItem(GalleryItemData& item, int size);
     GalleryListItem(CustomGalleryItemData& item, int size);
+    GalleryListItem(GalleryItemData& item, int size);
     virtual ~GalleryListItem();
 
 public:
-    Config::ItemTypeEnum Type();
-    void* Item();
+    Config::ItemTypeEnum getType();
+    int getSize();
 
-public:
-    const QPixmap& Pixmap();
-    const QString& Name();
+    void* getItem();
 
-private:
-    void LoadPixmap(GalleryItemData& item, int size);
-    void LoadPixmap(CustomGalleryItemData& item, int size);
+    const QPixmap& getPixmap();
+    const QString& getName();
+
+    void loadPixmap(int size);
+    void loadPixmap(CustomGalleryItemData& item, int size);
+    void loadPixmap(GalleryItemData& item, int size);
+
+    bool isLoad;
 
 private:
     Config::ItemTypeEnum type;
-    void* pItem;
+    int size;
+
+    void* item;
 
 private:
     QPixmap pixmap;
+
 };
 
 Q_DECLARE_METATYPE(GalleryListItem*)

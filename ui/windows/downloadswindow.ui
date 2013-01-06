@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>DownloadsWindow</class>
  <widget class="QDockWidget" name="DownloadsWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>300</width>
+    <height>300</height>
+   </rect>
+  </property>
   <property name="sizePolicy">
    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
@@ -17,8 +25,8 @@
   <property name="windowTitle">
    <string>Downloads</string>
   </property>
-  <widget class="QWidget" name="pwContent">
-   <layout class="QVBoxLayout" name="plContent">
+  <widget class="QWidget" name="wContent">
+   <layout class="QVBoxLayout" name="lContent">
     <property name="spacing">
      <number>0</number>
     </property>
@@ -26,7 +34,7 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="QListWidget" name="plwUrls"/>
+     <widget class="QListWidget" name="lwUrls"/>
     </item>
    </layout>
   </widget>

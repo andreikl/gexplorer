@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>EditKeyDialog</class>
- <widget class="QDialog" name="EditKeyDialog">
+ <class>EditNameDialog</class>
+ <widget class="QDialog" name="EditNameDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -13,19 +13,19 @@
   <property name="windowTitle">
    <string>Edit Key</string>
   </property>
-  <layout class="QVBoxLayout" name="plLayout">
+  <layout class="QVBoxLayout" name="lLayout">
    <item>
-    <widget class="QLabel" name="plName">
+    <widget class="QLabel" name="lName">
      <property name="text">
       <string>Name:</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QLineEdit" name="pleName"/>
+    <widget class="QLineEdit" name="leName"/>
    </item>
    <item>
-    <widget class="QWidget" name="pwFree" native="true">
+    <widget class="QWidget" name="wFree" native="true">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
@@ -35,8 +35,8 @@
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="pwButtons" native="true">
-     <layout class="QHBoxLayout" name="plButtons">
+    <widget class="QWidget" name="wButtons" native="true">
+     <layout class="QHBoxLayout" name="lButtons">
       <property name="spacing">
        <number>0</number>
       </property>
@@ -44,17 +44,17 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QPushButton" name="ppbSave">
+       <widget class="QPushButton" name="pbSave">
         <property name="text">
          <string>Save</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QWidget" name="pwBtnFree" native="true"/>
+       <widget class="QWidget" name="wBtnFree" native="true"/>
       </item>
       <item>
-       <widget class="QPushButton" name="ppbCancel">
+       <widget class="QPushButton" name="pbCancel">
         <property name="text">
          <string>Cancel</string>
         </property>

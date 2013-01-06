@@ -14,11 +14,13 @@
 
 CustomGalleryHandler* CustomGalleryHandler::handler = NULL;
 
-CustomGalleryHandler* CustomGalleryHandler::createInstance(Application*)
+CustomGalleryHandler* CustomGalleryHandler::createInstance()
 {
     if(!handler) {
         CustomGalleryHandler* tempHandler = new CustomGalleryHandler();
-        if(DbHandler::getInstance()->getCustomGalleries(tempHandler->customGalleries)) {
+        bool res = DbHandler::getInstance()->getCustomGalleries(tempHandler->customGalleries);
+        res && (res = DbHandler::getInstance()->getCustomGalleryItems(tempHandler));
+        if(res) {
             foreach(CustomGalleryData* gallery, tempHandler->customGalleries) {
                 foreach(CustomGalleryItemData* item, gallery->getItems()) {
                     item->item.customItems.append(item);
@@ -59,23 +61,46 @@ const QList<CustomGalleryData*>& CustomGalleryHandler::getCustomGalleries() cons
     return customGalleries;
 }
 
-CustomGalleryItemData* CustomGalleryHandler::addToCustomGallery(CustomGalleryData& value, int galleryId, int itemId)
+QList<CustomGalleryItemData*> CustomGalleryHandler::addToCustomGallery(CustomGalleryData& value, QList<CustomGalleryItemId>& ids)
 {
-    GalleryItemData* item = GalleryHandler::getInstance()->getGalleryItemById(galleryId, itemId);
-    if(item) {
-        CustomGalleryItemData* i = new CustomGalleryItemData(value, *item);
-        i->setName(item->getFileName());
-        if(DbHandler::getInstance()->addToCustomGallery(*i)) {
-            item->customItems.append(i);
+    QList<CustomGalleryItemData*> items;
+    foreach(const CustomGalleryItemId& id, ids) {
+        GalleryItemData* item = GalleryHandler::getInstance()->getGalleryItemById(id.gid, id.id);
+        bool isExist = false;
 
-            emit GalleryHandler::getInstance()->onUpdGallery(i->getItem().gallery);
-            emit onAddCustomGalleryItem(i);
-            return i;
-        } else {
-            delete i;
+        foreach(CustomGalleryItemData* i, value.getItems()) {
+            if(i->item.id == id.id) {
+                isExist = true;
+                break;
+            }
+        }
+
+        if(!isExist) {
+            CustomGalleryItemData* i = new CustomGalleryItemData(value, *item);
+            i->setName(item->getFileName());
+            items.append(i);
         }
     }
-    return NULL;
+
+    if(DbHandler::getInstance()->addToCustomGallery(items)) {
+        QList<GalleryData*> galleries;
+        foreach(CustomGalleryItemData* i, items) {
+            i->getItem().customItems.append(i);
+            emit onAddCustomGalleryItem(i);
+            if(!galleries.contains(i->getItem().gallery)) {
+                galleries.append(i->getItem().gallery);
+            }
+        }
+        foreach(GalleryData* g, galleries) {
+            emit GalleryHandler::getInstance()->onUpdGallery(g);
+        }
+    } else {
+        foreach(CustomGalleryItemData* i, items) {
+            delete i;
+        }
+        items.clear();
+    }
+    return items;
 }
 
 CustomGalleryData* CustomGalleryHandler::addCustomGallery(const CustomGalleryData& value)
@@ -147,16 +172,17 @@ bool CustomGalleryHandler::delFromCustomGallery(CustomGalleryItemData& value)
 bool CustomGalleryHandler::delCustomGallery(CustomGalleryData& value)
 {
     if(DbHandler::getInstance()->delCustomGallery(value)) {
-        QList<KeyData*> keys;
+        //QList<KeyData*> keys;
         foreach(KeyData* key, value.getKeys()) {
             key->galleries.removeOne(&value);
-            if(keys.indexOf(key) < 0) {
+            emit KeyHandler::getInstance()->onDelFromKey(key, &value);
+            /*if(keys.indexOf(key) < 0) {
                 keys.append(key);
-            }
+            }*/
         }
-        foreach(KeyData* item, keys) {
+        /*foreach(KeyData* item, keys) {
             emit KeyHandler::getInstance()->onUpdKey(item);
-        }
+        }*/
         QList<GalleryData*> galleries;
         foreach(CustomGalleryItemData* item, value.getItems()) {
             item->item.customItems.removeOne(item);
@@ -177,39 +203,47 @@ bool CustomGalleryHandler::delCustomGallery(CustomGalleryData& value)
     return false;
 }
 
-bool CustomGalleryHandler::updCustomGalleryItemName(CustomGalleryItemData& item, const QString& name)
+bool CustomGalleryHandler::updCustomGalleryItemNames(QList<CustomGalleryItemName>& names)
 {
-    if(item.getName() != name && DbHandler::getInstance()->updCustomGalleryItemName(item, name)) {
-        item.setName(name);
-        foreach(CustomGalleryItemData* i, item.getChildren()) {
-            if(DbHandler::getInstance()->updCustomGalleryItemName(*i, name)) {
-                i->setName(name);
+    if(DbHandler::getInstance()->updCustomGalleryItemNames(names)) {
+        foreach(const CustomGalleryItemName& item, names) {
+            item.item->setName(item.name);
+            foreach(CustomGalleryItemData* i, item.item->getChildren()) {
+                i->setName(item.name);
             }
-        }
 
+            emit onUpdCustomGalleryItem(item.item);
+        }
+        return true;
+    }
+    return false;
+}
+
+bool CustomGalleryHandler::updCustomGalleryItemUnite(CustomGalleryItemData& item, int customId)
+{
+    CustomGalleryItemData* i = getCustomGalleryItemById(item.getCustomGallery()->getId(), customId);
+    if(i && item.getId() != customId && DbHandler::getInstance()->updCustomGalleryItemUnite(item, customId)) {
+        item.setCustomId(customId);
+
+        i->children.append(&item);
+
+        if(DbHandler::getInstance()->updCustomGalleryItemName(item, i->getName())) {
+            item.setName(i->getName());
+        }
         emit onUpdCustomGalleryItem(&item);
         return true;
     }
     return false;
 }
 
-
-bool CustomGalleryHandler::updCustomGalleryItemCustomId(CustomGalleryItemData& item, int customId)
+bool CustomGalleryHandler::updCustomGalleryItemSplit(CustomGalleryItemData& item)
 {
-    if(item.getCustomId() != customId && DbHandler::getInstance()->updCustomGalleryItemCustomId(item, customId)) {
-        item.setCustomId(customId);
-
-        CustomGalleryItemData* i = getCustomGalleryItemById(item.getCustomGallery()->getId(), item.getCustomId());
-        if(item.getCustomId() != 0) {
-            i->children.append(&item);
-
-            if(DbHandler::getInstance()->updCustomGalleryItemName(item, i->getName())) {
-                item.setName(i->getName());
-            }
-
-        } else {
-            i->children.removeOne(&item);
+    if(DbHandler::getInstance()->updCustomGalleryItemSplit(item)) {
+        foreach(CustomGalleryItemData* i, item.getChildren()) {
+            i->setCustomId(0);
+            emit onAddCustomGalleryItem(i);
         }
+        item.children.clear();
 
         emit onUpdCustomGalleryItem(&item);
         return true;
@@ -230,17 +264,19 @@ bool CustomGalleryHandler::updCustomGalleryItemAngle(CustomGalleryItemData& item
 
 CustomGalleryData* CustomGalleryHandler::updCustomGallery(CustomGalleryData& value)
 {
-    if(DbHandler::getInstance()->updCustomGallery(value)) {
-        CustomGalleryData* gallery = getCustomGalleryById(value.getId());
-        gallery->setName(value.getName());
-
-        emit onUpdCustomGallery(gallery);
-        return gallery;
+    CustomGalleryData* gallery = getCustomGalleryById(value.getId());
+    if(gallery->getName().compare(value.getName()) != 0) {
+        if(DbHandler::getInstance()->updCustomGallery(value)) {
+            gallery->setName(value.getName());
+            emit onUpdCustomGallery(gallery, "name");
+        } else {
+            gallery = NULL;
+        }
     }
-    return NULL;
+    return gallery;
 }
 
-CustomGalleryItemData* CustomGalleryHandler::getCustomGalleryItemById(int galleryId, int id) const
+CustomGalleryItemData* CustomGalleryHandler::getCustomGalleryItemById(int galleryId, int id)
 {
     foreach(CustomGalleryData* gallery, customGalleries) {
         if(gallery->getId() == galleryId) {

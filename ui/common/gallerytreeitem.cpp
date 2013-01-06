@@ -4,52 +4,64 @@
 
 #include "ui/common/gallerytreeitem.h"
 
-GalleryTreeItem::GalleryTreeItem(BaseData* pData, const QString& name, GalleryTreeItem* pParent) {
+GalleryTreeItem::GalleryTreeItem(BaseData* data, const QString& name, GalleryTreeItem* parent)
+{
     this->name = name;
-    this->pData = pData;
-    this->pParent = pParent;
+    this->data = data;
+    this->parent = parent;
 }
 
-GalleryTreeItem::~GalleryTreeItem() {
+GalleryTreeItem::~GalleryTreeItem()
+{
     qDeleteAll(childs);
 }
 
-GalleryData* GalleryTreeItem::Gallery() {
-    return dynamic_cast<GalleryData*>(pData);
+CustomGalleryData* GalleryTreeItem::getCustomGallery()
+{
+    return dynamic_cast<CustomGalleryData*>(data);
 }
 
-CustomGalleryData* GalleryTreeItem::CustomGallery() {
-    return dynamic_cast<CustomGalleryData*>(pData);
+GalleryData* GalleryTreeItem::getGallery()
+{
+    return dynamic_cast<GalleryData*>(data);
 }
 
-KeyData* GalleryTreeItem::Key() {
-    return dynamic_cast<KeyData*>(pData);
+KeyData* GalleryTreeItem::getKey()
+{
+    return dynamic_cast<KeyData*>(data);
 }
 
-BaseData* GalleryTreeItem::Data() {
-    return pData;
+GalleryTreeItem* GalleryTreeItem::getParent()
+{
+    return parent;
 }
 
-void GalleryTreeItem::Data(BaseData* pData) {
-    this->pData = pData;
-}
-
-const QString& GalleryTreeItem::Name() {
+const QString& GalleryTreeItem::getName()
+{
     return name;
 }
 
-void GalleryTreeItem::Name(const QString& name) {
+BaseData* GalleryTreeItem::getData()
+{
+    return data;
+}
+
+void GalleryTreeItem::setParent(GalleryTreeItem* parent)
+{
+    this->parent = parent;
+}
+
+void GalleryTreeItem::setName(const QString& name)
+{
     this->name = name;
 }
 
-GalleryTreeItem* GalleryTreeItem::Parent() {
-    return pParent;
+void GalleryTreeItem::setData(BaseData* data)
+{
+    this->data = data;
 }
 
-void GalleryTreeItem::Parent(GalleryTreeItem* pParent) {
-    this->pParent = pParent;
-}
-
-QList<GalleryTreeItem*>& GalleryTreeItem::Childs() {
+QList<GalleryTreeItem*>& GalleryTreeItem::getChilds()
+{
     return childs;
 }

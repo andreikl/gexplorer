@@ -1,74 +1,115 @@
 #ifndef CUSTOMGALLERYCONTROL_H
 #define CUSTOMGALLERYCONTROL_H
 
-#include <QtGui/QWidget>
+#include <QtWidgets/QWidget>
 
-QT_BEGIN_NAMESPACE
-class QComboBox;
-class QMenu;
-QT_END_NAMESPACE
-
+class CustomGalleryItemData;
 class CustomGalleryList;
 class CustomGalleryData;
 class GalleryListModel;
+class GalleryItemData;
 class TitleControl;
 
-namespace Ui {
+QT_BEGIN_NAMESPACE
+class QComboBox;
+class QSplitter;
+class QMenu;
+QT_END_NAMESPACE
+
+namespace Ui
+{
     class CustomGalleryControl;
 }
 
-class CustomGalleryControl: public QWidget {
+class CustomGalleryControl: public QWidget
+{
     Q_OBJECT
 
 public:
-    explicit CustomGalleryControl(QWidget* pParent = NULL);
+    explicit CustomGalleryControl(QWidget* parent);
     virtual ~CustomGalleryControl();
 
 public:
-    GalleryListModel* Model();
-    TitleControl* Title();
+    CustomGalleryData* getGallery();
+    GalleryListModel* getModel();
+    TitleControl* getTitle();
 
 public:
-    void Gallery(CustomGalleryData* pValue);
-    CustomGalleryData* Gallery();
+    void selectItem(CustomGalleryItemData* value);
+    void setGallery(CustomGalleryData* value);
 
-protected:
-    void contextMenuEvent(QContextMenuEvent* pEvent);
-
-private slots:
-    void IconSizeChangedEvent(int value);
-    void ShowEvent();
-    void LeftEvent();
-    void RightEvent();
-    void UniteEvent();
-    void DelEvent();
+signals:
+    void onGotoItem(GalleryItemData* value);
 
 private slots:
-    void SelectedEvent();
+    void contextMenu1Event(const QPoint& pos);
+    void contextMenu2Event(const QPoint& pos);
+
+    void iconSizeChangedEvent(int value);
+    void selectedEvent();
+    void uniteEvent();
+    void splitEvent();
+
+    void show1Event();
+    void show2Event();
+
+    void left1Event();
+    void left2Event();
+    void right1Event();
+    void right2Event();
+
+    void gotoChildrenEvent(GalleryItemData* gallery);
+    void gotoEvent();
+
+    void delEvent();
+
+    void exitCustomGallery2Event();
+    void editEvent();
 
 private:
-    void CreateMenuAndActions();
-    void UpdateButtons();
+    void create1MenuAndActions();
+    void create2MenuAndActions();
+    void updateButtons();
 
 private:
-    CustomGalleryData* pData;
+    CustomGalleryData* data;
 
 private:
-    QMenu* pmMenu;
-    QComboBox* pcbSize;
-    QAction* paShow;
-    QAction* paLeft;
-    QAction* paRight;
-    QAction* paUnite;
-    QAction* paDel;
+    QMenu* mMenu1;
+    QMenu* mMenu2;
+
+    QComboBox* cbSize;
+
+    QAction* aEdit;
+    QAction* aUnite;
+    QAction* aSplit;
+
+    QAction* aShow1;
+    QAction* aShow2;
+
+    QAction* aLeft1;
+    QAction* aLeft2;
+    QAction* aRight1;
+    QAction* aRight2;
+
+    QMenu* mGotoMenu;
+
+    QAction* aDel;
 
 private:
-    GalleryListModel* pModel;
-    CustomGalleryList* pList;
-    TitleControl* pTitle;
+    GalleryListModel* model;
+    QSplitter* splitter;
+
+    QWidget* wSplit1;
+    TitleControl* title1;
+    CustomGalleryList* list1;
+
+    QWidget* wSplit2;
+    TitleControl* title2;
+    CustomGalleryList* list2;
 
 private:
-    Ui::CustomGalleryControl* pUi;
+    Ui::CustomGalleryControl* ui;
 };
 
 #endif // CUSTOMGALLERYCONTROL_H

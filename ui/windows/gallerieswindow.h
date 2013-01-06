@@ -1,64 +1,73 @@
 #ifndef GALLERIESWINDOW_H
 #define GALLERIESWINDOW_H
 
-#include <QtGui/QDockWidget>
-
-QT_BEGIN_NAMESPACE
-class QMenu;
-QT_END_NAMESPACE
+#include <QtWidgets/QDockWidget>
 
 class GalleryTreeModel;
 class GalleriesTree;
 class TitleControl;
 class GalleryData;
 
-namespace Ui {
+QT_BEGIN_NAMESPACE
+class QComboBox;
+class QMenu;
+QT_END_NAMESPACE
+
+namespace Ui
+{
     class GalleriesWindow;
 }
 
-class GalleriesWindow: public QDockWidget {
+class GalleriesWindow: public QDockWidget
+{
     Q_OBJECT
 
 public:
-    explicit GalleriesWindow(QWidget* pParent = NULL);
+    explicit GalleriesWindow(QWidget* parent);
     virtual ~GalleriesWindow();
 
+public:
+    void selectGallery(GalleryData* value);
+
 signals:
-    void OnGallery(GalleryData* pData);
-    void OnBrowse(GalleryData* pData);
-    void OnAdd(const QString& source);
+    void onAdd(const QString& source);
+    void onGallery(GalleryData* data);
+    void onBrowse(GalleryData* data);
 
 protected:
-    void contextMenuEvent(QContextMenuEvent*);
+    void contextMenuEvent(QContextMenuEvent* event);
 
 private slots:
-    void AddEvent();
-    void BrowseEvent();
-    void DelEvent();
-    void ExitEvent();
-
-private slots:
-    void AddGalleryEvent(GalleryTreeModel*, GalleryData* pGallery);
-    void ActivatedEvent();
-    void SelectedEvent();
-
-private:
-    void CreateMenuAndActions();
-    void UpdateButtons();
+    void addGalleryEvent(GalleryData* gallery);
+    void filterChangedEvent(int value);
+    void activatedEvent();
+    void selectedEvent();
+    void browseEvent();
+    void editEvent();
+    void exitEvent();
+    void addEvent();
+    void delEvent();
 
 private:
-    QMenu* pmMenu;
-    QAction* paAdd;
-    QAction* paShow;
-    QAction* paBrowse;
-    QAction* paDel;
+    void createMenuAndActions(TitleControl* title);
+    void updateButtons();
 
 private:
-    TitleControl* pTitle;
-    GalleriesTree* ptwGalleries;
+    QComboBox* cbFilter;
+
+    QAction* aGotoGallery;
+    QAction* aBrowse;
+    QAction* aEdit;
+    QAction* aShow;
+    QAction* aAdd;
+    QAction* aDel;
+    QMenu* mMenu;
 
 private:
-    Ui::GalleriesWindow *pUi;
+    GalleriesTree* twGalleries;
+
+private:
+    Ui::GalleriesWindow* ui;
 
 };
 

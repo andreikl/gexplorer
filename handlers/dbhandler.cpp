@@ -69,6 +69,9 @@ DbHandler* DbHandler::createInstance(const QString& path)
             if(res) {
                 res = query.exec("INSERT INTO gallery_types (id, name) VALUES (2, 'File')");
             }
+            if(res) {
+                res = query.exec("INSERT INTO gallery_types (id, name) VALUES (3, 'Deleted')");
+            }
         }
         if(res) {
             res = query.exec("CREATE TABLE IF NOT EXISTS extension_types (id INTEGER PRIMARY KEY, name VARCHAR(256) NOT NULL)");
@@ -106,12 +109,18 @@ DbHandler* DbHandler::createInstance(const QString& path)
             if(res) {
                 res = query.exec("INSERT INTO extensions (id, name, type) VALUES (5, '.mpg', 2)");
             }
+            if(res) {
+                res = query.exec("INSERT INTO extensions (id, name, type) VALUES (6, '.flv', 2)");
+            }
         }
         if(res) {
             res = query.exec("CREATE TABLE IF NOT EXISTS galleries (id INTEGER PRIMARY KEY, source VARCHAR(1024) NOT NULL UNIQUE, path VARCHAR(1024) NOT NULL, type INTEGER REFERENCES gallery_types(id))");
         }
         if(res) {
             res = query.exec("CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY, url VARCHAR(1024) NOT NULL UNIQUE, path VARCHAR(1024) NOT NULL, filename VARCHAR(256) NOT NULL, extension_id INTEGER REFERENCES extensions(id), status_id INTEGER REFERENCES statuses(id), gallery_id INTEGER REFERENCES galleries(id) ON UPDATE CASCADE ON DELETE CASCADE)");
+        }
+        if(res) {
+            res = query.exec("CREATE TABLE IF NOT EXISTS item_to_item (id INTEGER REFERENCES items(id) ON UPDATE CASCADE ON DELETE CASCADE, item_id INTEGER REFERENCES items(id) ON UPDATE CASCADE ON DELETE RESTRICT, angle INTEGER DEFAULT 0, PRIMARY KEY(id))");
         }
         if(res) {
             res = query.exec("CREATE TABLE IF NOT EXISTS custom_galleries (id INTEGER PRIMARY KEY, name VARCHAR(256) NOT NULL UNIQUE)");
@@ -158,7 +167,7 @@ DbHandler::~DbHandler()
 DbHandler::DbHandler() {
 }
 
-bool DbHandler::getGalleries(Application* app, QList<GalleryData*>& galleries)
+bool DbHandler::getGalleries(QList<GalleryData*>& galleries)
 {
     bool res = true;
     QSqlQuery query;
@@ -170,22 +179,48 @@ bool DbHandler::getGalleries(Application* app, QList<GalleryData*>& galleries)
         gallery->setPath(query.value(2).toString());
         galleries.append(gallery);
     }
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+struct TempGalleryData
+{
+public:
+    TempGalleryData(GalleryItemData* item, int gal_id, int item_id)
+    {
+        this->item = item;
+        this->gal_id = gal_id;
+        this->item_id = item_id;
+    }
+
+    GalleryItemData* item;
+    int gal_id;
+    int item_id;
+};
+
+bool DbHandler::getGalleryItems(Application* app, GalleryHandler* handler)
+{
+    QList<TempGalleryData> td;
+    bool res = true;
+    QSqlQuery query;
+
+    res = query.exec("SELECT i.id, i.url, i.path, i.filename, i.extension_id, i.status_id, i.gallery_id, ii.item_id, ii.angle, g.id FROM items AS i LEFT JOIN item_to_item AS ii ON i.id = ii.id LEFT JOIN items AS i1 ON ii.item_id = i1.id LEFT JOIN galleries AS g ON i1.gallery_id = g.id");
+    while(query.next()) {
+        GalleryData* gallery = handler->getGalleryById(query.value(6).toInt());
+        GalleryItemData* item = new GalleryItemData(gallery, *app->getExtensionById(query.value(4).toInt()));
+        item->setId(query.value(0).toInt());
+        item->setUrl(query.value(1).toString());
+        item->setPath(query.value(2).toString());
+        item->setFileName(query.value(3).toString());
+        item->setStatus((GalleryItemData::GalleryItemStatusEnum)query.value(5).toInt());
+        if(!query.value(7).isNull()) {
+            td.append(TempGalleryData(item, query.value(9).toInt(), query.value(7).toInt()));
+            item->setReferenceAngle(query.value(8).toInt());
+        }
+    }
     if(res) {
-        foreach(GalleryData* gallery, galleries) {
-            query.prepare("SELECT * FROM items WHERE gallery_id = :gallery_id");
-            query.bindValue(":gallery_id", gallery->getId());
-            res = query.exec();
-            while(query.next()) {
-                GalleryItemData* item = new GalleryItemData(gallery, *app->getExtensionById(query.value(4).toInt()));
-                item->setId(query.value(0).toInt());
-                item->setUrl(query.value(1).toString());
-                item->setPath(query.value(2).toString());
-                item->setFileName(query.value(3).toString());
-                item->setStatus((GalleryItemData::GalleryItemStatusEnum)query.value(5).toInt());
-            }
-            if(!res) {
-                break;
-            }
+        foreach(const TempGalleryData& i, td) {
+            i.item->setReference(handler->getGalleryItemById(i.gal_id, i.item_id));
         }
     }
     checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
@@ -203,23 +238,22 @@ bool DbHandler::getCustomGalleries(QList<CustomGalleryData*>& customGalleries)
         gallery->setName(query.value(1).toString());
         customGalleries.append(gallery);
     }
-    if(res) {
-        foreach(CustomGalleryData* gallery, customGalleries) {
-            query.prepare("SELECT id, item_id, name, angle, custom_item_id FROM custom_items WHERE custom_gallery_id = :custom_gallery_id");
-            query.bindValue(":custom_gallery_id", gallery->getId());
-            res = query.exec();
-            while(query.next()) {
-                GalleryItemData* item = GalleryHandler::getInstance()->getGalleryItemById(query.value(1).toInt());
-                CustomGalleryItemData* customItem = new CustomGalleryItemData(*gallery, *item);
-                customItem->setId(query.value(0).toInt());
-                customItem->setName(query.value(2).toString());
-                customItem->setAngle(query.value(3).toInt());
-                customItem->setCustomId(query.value(4).toInt());
-            }
-            if(!res) {
-                break;
-            }
-        }
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+bool DbHandler::getCustomGalleryItems(CustomGalleryHandler* handler) {
+    bool res = true;
+    QSqlQuery query;
+    res = query.exec("SELECT ci.id, ci.custom_gallery_id, ci.item_id, ci.name, ci.angle, ci.custom_item_id, g.id FROM custom_items AS ci LEFT JOIN items AS i ON ci.item_id = i.id LEFT JOIN galleries AS g ON i.gallery_id = g.id");
+    while(query.next()) {
+        CustomGalleryData* gallery = handler->getCustomGalleryById(query.value(1).toInt());
+        GalleryItemData* item = GalleryHandler::getInstance()->getGalleryItemById(query.value(6).toInt(), query.value(2).toInt());
+        CustomGalleryItemData* customItem = new CustomGalleryItemData(*gallery, *item);
+        customItem->setId(query.value(0).toInt());
+        customItem->setName(query.value(3).toString());
+        customItem->setAngle(query.value(4).toInt());
+        customItem->setCustomId(query.value(5).toInt());
     }
     checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
     return res;
@@ -279,19 +313,32 @@ bool DbHandler::addToKey(const KeyData& key, const CustomGalleryData& value)
     return res;
 }
 
-bool DbHandler::addToCustomGallery(CustomGalleryItemData& value)
+bool DbHandler::addToCustomGallery(QList<CustomGalleryItemData*>& items)
 {
     bool res = true;
     QSqlQuery query;
-    query.prepare("INSERT INTO custom_items (id, custom_gallery_id, item_id, name) VALUES (NULL, :custom_gallery_id, :item_id, :name)");
-    query.bindValue(":custom_gallery_id", value.getCustomGallery()->getId());
-    query.bindValue(":item_id", value.getItem().getId());
-    query.bindValue(":name", value.getName());
-    res = query.exec();
-    if(res) {
-        value.setId(query.lastInsertId().toInt());
+
+    QSqlDatabase::database().transaction();
+    foreach(CustomGalleryItemData* item, items) {
+        query.prepare("INSERT INTO custom_items (id, custom_gallery_id, item_id, name) VALUES (NULL, :custom_gallery_id, :item_id, :name)");
+        query.bindValue(":custom_gallery_id", item->getCustomGallery()->getId());
+        query.bindValue(":item_id", item->getItem().getId());
+        query.bindValue(":name", item->getName());
+        res = query.exec();
+        if(res) {
+            item->setId(query.lastInsertId().toInt());
+        } else {
+            break;
+        }
     }
     checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    if(res) {
+        int r = QSqlDatabase::database().commit();
+        checkResAndWriteError(r, QSqlDatabase::database().lastError().text());
+    } else {
+        int r = QSqlDatabase::database().rollback();
+        checkResAndWriteError(r, QSqlDatabase::database().lastError().text());
+    }
     return res;
 }
 
@@ -323,6 +370,37 @@ bool DbHandler::addCustomGallery(CustomGalleryData& value)
     }
     if(res) {
         value.setId(id);
+    }
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    if(res) {
+        int r = QSqlDatabase::database().commit();
+        checkResAndWriteError(r, QSqlDatabase::database().lastError().text());
+    } else {
+        int r = QSqlDatabase::database().rollback();
+        checkResAndWriteError(r, QSqlDatabase::database().lastError().text());
+    }
+    return res;
+}
+
+bool DbHandler::addToGallery(GalleryData& value)
+{
+    bool res = true;
+    QSqlQuery query;
+    QSqlDatabase::database().transaction();
+    foreach (GalleryItemData* item, value.getItems()) {
+        query.prepare("INSERT INTO items (id, url, path, filename, extension_id, status_id, gallery_id) VALUES (NULL, :url, :path, :filename, :extension_id, :status_id, :gallery_id)");
+        query.bindValue(":url", item->getUrl());
+        query.bindValue(":path", item->getPath());
+        query.bindValue(":filename", item->getFileName());
+        query.bindValue(":extension_id", item->getExtension().getId());
+        query.bindValue(":status_id", item->getStatus());
+        query.bindValue(":gallery_id", value.getId());
+        res = query.exec();
+        if(res) {
+            item->setId(query.lastInsertId().toInt());
+        } else {
+            break;
+        }
     }
     checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
     if(res) {
@@ -437,6 +515,17 @@ bool DbHandler::delCustomGallery(const CustomGalleryData& value)
     return res;
 }
 
+bool DbHandler::delFromGallery(const GalleryItemData& value)
+{
+    bool res = true;
+    QSqlQuery query;
+    query.prepare("DELETE FROM items WHERE id = :id");
+    query.bindValue(":id", value.getId());
+    res = query.exec();
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
 bool DbHandler::delGallery(const GalleryData& value)
 {
     bool res = true;
@@ -471,7 +560,48 @@ bool DbHandler::updCustomGalleryItemName(const CustomGalleryItemData& item, cons
     return res;
 }
 
-bool DbHandler::updCustomGalleryItemCustomId(const CustomGalleryItemData& item, int customId)
+bool DbHandler::updCustomGalleryItemNames(QList<CustomGalleryItemName>& names)
+{
+    bool res = true;
+    QSqlQuery query;
+
+    QSqlDatabase::database().transaction();
+    foreach(const CustomGalleryItemName& item, names) {
+        if(res) {
+            query.prepare("UPDATE custom_items SET name = :name WHERE id = :id");
+            query.bindValue(":id", item.item->getId());
+            query.bindValue(":name", item.name);
+            res = query.exec();
+            if(res) {
+            } else {
+                break;
+            }
+            foreach(CustomGalleryItemData* i, item.item->getChildren()) {
+                query.prepare("UPDATE custom_items SET name = :name WHERE id = :id");
+                query.bindValue(":id", i->getId());
+                query.bindValue(":name", item.name);
+                res = query.exec();
+                if(res) {
+                } else {
+                    break;
+                }
+            }
+        } else {
+            break;
+        }
+    }
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    if(res) {
+        int r = QSqlDatabase::database().commit();
+        checkResAndWriteError(r, QSqlDatabase::database().lastError().text());
+    } else {
+        int r = QSqlDatabase::database().rollback();
+        checkResAndWriteError(r, QSqlDatabase::database().lastError().text());
+    }
+    return res;
+}
+
+bool DbHandler::updCustomGalleryItemUnite(const CustomGalleryItemData& item, int customId)
 {
     bool res = true;
     QSqlQuery query;
@@ -480,6 +610,32 @@ bool DbHandler::updCustomGalleryItemCustomId(const CustomGalleryItemData& item, 
     query.bindValue(":custom_item_id", customId);
     res = query.exec();
     checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+bool DbHandler::updCustomGalleryItemSplit(const CustomGalleryItemData& item)
+{
+    bool res = true;
+    QSqlQuery query;
+
+    QSqlDatabase::database().transaction();
+    foreach(CustomGalleryItemData* i, item.getChildren()) {
+        if(res) {
+            query.prepare("UPDATE custom_items SET custom_item_id = NULL WHERE id = :id");
+            query.bindValue(":id", i->getId());
+            res = query.exec();
+        } else {
+            break;
+        }
+    }
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    if(res) {
+        int r = QSqlDatabase::database().commit();
+        checkResAndWriteError(r, QSqlDatabase::database().lastError().text());
+    } else {
+        int r = QSqlDatabase::database().rollback();
+        checkResAndWriteError(r, QSqlDatabase::database().lastError().text());
+    }
     return res;
 }
 
@@ -504,6 +660,32 @@ bool DbHandler::updCustomGallery(const CustomGalleryData& value)
     query.bindValue(":id", value.getId());
     res = query.exec();
     checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+bool DbHandler::updGalleryItemReference(const GalleryItemData& item, const GalleryItemData& reference, int angle)
+{
+    bool res = true;
+    QSqlQuery query;
+    QSqlDatabase::database().transaction();
+    query.prepare("DELETE FROM item_to_item WHERE id=:id");
+    query.bindValue(":id", item.getId());
+    res = query.exec();
+    if(res) {
+        query.prepare("INSERT INTO item_to_item (id, item_id, angle) VALUES (:id, :item_id, :angle)");
+        query.bindValue(":id", item.getId());
+        query.bindValue(":item_id", reference.getId());
+        query.bindValue(":angle", angle);
+        res = query.exec();
+    }
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    if(res) {
+        int r = QSqlDatabase::database().commit();
+        checkResAndWriteError(r, QSqlDatabase::database().lastError().text());
+    } else {
+        int r = QSqlDatabase::database().rollback();
+        checkResAndWriteError(r, QSqlDatabase::database().lastError().text());
+    }
     return res;
 }
 

@@ -2,6 +2,8 @@
 #define GALLERYITEMDATA_H
 
 #include <QtCore/QMetaType>
+#include <QtCore/QString>
+#include <QtCore/QList>
 
 class CustomGalleryItemData;
 class ExtensionData;
@@ -10,6 +12,7 @@ class GalleryData;
 class GalleryItemData
 {
     friend class CustomGalleryHandler;
+    friend class GalleryHandler;
 
 public:
     enum GalleryItemStatusEnum {
@@ -26,7 +29,7 @@ public:
 public:
     const QList<CustomGalleryItemData*>& getCustomItems() const;
     const ExtensionData& getExtension() const;
-    const GalleryData* getGallery() const;
+    GalleryData* getGallery() const;
 
 public:
     GalleryItemStatusEnum getStatus() const;
@@ -35,12 +38,22 @@ public:
     const QString& getUrl() const;
     int getId() const;
 
+    GalleryItemData* getReference() const;
+    int getReferenceAngle() const;
+
 public:
     void setStatus(GalleryItemStatusEnum value);
     void setFileName(const QString& value);
     void setPath(const QString& value);
     void setUrl(const QString& value);
     void setId(int value);
+
+    void setReference(GalleryItemData* reference);
+    void setReferenceAngle(int angle);
+
+public:
+    int width;
+    int height;
 
 public:
     GalleryItemData* clone(GalleryData* gallery) const;
@@ -57,6 +70,8 @@ private:
     QString url;
     int id;
 
+    GalleryItemData* reference;
+    int referenceAngle;
 };
 
 Q_DECLARE_METATYPE(GalleryItemData*)

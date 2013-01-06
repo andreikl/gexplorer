@@ -1,263 +1,306 @@
 #include <QtCore/QTimer>
 #include <QtCore/QDebug>
 
+#include <QtWidgets/QSplitter>
+
+#include "application.h"
 #include "config.h"
+
+#include "data/customgalleryitemdata.h"
+#include "data/galleryitemdata.h"
+#include "data/gallerydata.h"
 
 #include "handlers/customgalleryhandler.h"
 #include "handlers/galleryhandler.h"
 
+#include "ui/controls/customgallerycontrol.h"
+#include "ui/controls/gallerycontrol.h"
+#include "ui/controls/browsercontrol.h"
 #include "ui/controls/titlecontrol.h"
 
-#include "ui/mainwindow.h"
+#include "ui/windows/customgallerieswindow.h"
+#include "ui/windows/keygallerieswindow.h"
+#include "ui/windows/gallerieswindow.h"
+#include "ui/windows/downloadswindow.h"
 
+#include "ui/mainwindow.h"
 #include "ui_mainwindow.h"
 
-QStatusBar* pBar = NULL;
+QStatusBar* bar = NULL;
 
-MainWindow::MainWindow(QWidget* pParent): QMainWindow(pParent), pBrowser(NULL), pGallery(NULL), pCustomGallery(NULL), pClean(NULL), pUi(new Ui::MainWindow) {
-    pUi->setupUi(this);
+MainWindow::MainWindow(QWidget* pParent): QMainWindow(pParent), customGallery(NULL), gallery(NULL), browser(NULL), ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
 
-    pBar = pUi->psbStatusBar;
+    dwGalleries = new GalleriesWindow(this);
+    //dwGalleries->setFloating(true);
+    addDockWidget(Qt::RightDockWidgetArea, dwGalleries);
 
-    pClean = new CleanControl();
-    pUi->plLayout->addWidget(pClean);
+    dwCustomGalleries = new CustomGalleriesWindow(this);
+    //dwCustomGalleries->setFloating(true);
+    addDockWidget(Qt::RightDockWidgetArea, dwCustomGalleries);
 
-    isBrowser = false;
-    isGallery = false;
+    dwKeys = new KeyGalleriesWindow(this);
+    //dwKeys->setFloating(true);
+    addDockWidget(Qt::LeftDockWidgetArea, dwKeys);
+
+    dwDownloads = new DownloadsWindow(this);
+    //dwDownloads->setFloating(true);
+    addDockWidget(Qt::LeftDockWidgetArea, dwDownloads);
+
+    bar = ui->sbStatusBar;
+
+    splitter = new QSplitter(Qt::Vertical, this);
+    ui->lLayout->addWidget(splitter);
+
     isCustomGallery = false;
+    isGallery = false;
+    isBrowser = false;
 
-    pUi->pmViews->addAction(pUi->pdwKeyGalleriesWindow->toggleViewAction());
-    connect(pUi->pdwKeyGalleriesWindow->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(keyGalleriesWindowEvent(bool)));
-    pUi->pmViews->addAction(pUi->pdwCustomGalleriesWindow->toggleViewAction());
-    connect(pUi->pdwCustomGalleriesWindow->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(customGalleriesWindowEvent(bool)));
-    pUi->pmViews->addAction(pUi->pdwGalleriesWindow->toggleViewAction());
-    connect(pUi->pdwGalleriesWindow->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(galleriesWindowEvent(bool)));
-    pUi->pmViews->addAction(pUi->pdwDownloadsWindow->toggleViewAction());
-    connect(pUi->pdwDownloadsWindow->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(downloadsWindowEvent(bool)));
+    ui->mViews->addAction(dwKeys->toggleViewAction());
+    connect(dwKeys->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(keyGalleriesWindowEvent(bool)));
+    ui->mViews->addAction(dwCustomGalleries->toggleViewAction());
+    connect(dwCustomGalleries->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(customGalleriesWindowEvent(bool)));
+    ui->mViews->addAction(dwGalleries->toggleViewAction());
+    connect(dwGalleries->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(galleriesWindowEvent(bool)));
+    ui->mViews->addAction(dwDownloads->toggleViewAction());
+    connect(dwDownloads->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(downloadsWindowEvent(bool)));
 
-    if(Config::Self()->IsKeyGalleriesWindow()) {
-        pUi->pdwKeyGalleriesWindow->setVisible(true);
+    if(Config::getInstance()->getIsKeyGalleriesWindow()) {
+        dwKeys->setVisible(true);
     } else {
-        pUi->pdwKeyGalleriesWindow->setVisible(false);
+        dwKeys->setVisible(false);
     }
-    if(Config::Self()->IsCustomGalleriesWindow()) {
-        pUi->pdwCustomGalleriesWindow->setVisible(true);
+    if(Config::getInstance()->getIsCustomGalleriesWindow()) {
+        dwCustomGalleries->setVisible(true);
     } else {
-        pUi->pdwCustomGalleriesWindow->setVisible(false);
+        dwCustomGalleries->setVisible(false);
     }
-    if(Config::Self()->IsGalleriesWindow()) {
-        pUi->pdwGalleriesWindow->setVisible(true);
+    if(Config::getInstance()->getIsGalleriesWindow()) {
+        dwGalleries->setVisible(true);
     } else {
-        pUi->pdwGalleriesWindow->setVisible(false);
+        dwGalleries->setVisible(false);
     }
-    if(Config::Self()->IsDownloadsWindow()) {
-        pUi->pdwDownloadsWindow->setVisible(true);
+    if(Config::getInstance()->getIsDownloadsWindow()) {
+        dwDownloads->setVisible(true);
     } else {
-        pUi->pdwDownloadsWindow->setVisible(false);
+        dwDownloads->setVisible(false);
     }
 
-    connect(GalleryHandler::getInstance(), SIGNAL(onDelGallery(GalleryData*)), SLOT(delGalleryEvent(GalleryData*)));
     connect(CustomGalleryHandler::getInstance(), SIGNAL(onDelCustomGallery(CustomGalleryData*)), SLOT(delCustomGalleryEvent(CustomGalleryData*)));
+    connect(GalleryHandler::getInstance(), SIGNAL(onDelGallery(GalleryData*)), SLOT(delGalleryEvent(GalleryData*)));
 
-    connect(pUi->pdwGalleriesWindow, SIGNAL(OnAdd(const QString&)), SLOT(AddGalleryEvent(const QString&)));
-    connect(pUi->pdwGalleriesWindow, SIGNAL(OnBrowse(GalleryData*)), SLOT(BrowseGalleryEvent(GalleryData*)));
-    connect(pUi->pdwGalleriesWindow, SIGNAL(OnGallery(GalleryData*)), SLOT(GalleryEvent(GalleryData*)));
-    connect(pUi->pdwCustomGalleriesWindow, SIGNAL(OnGallery(CustomGalleryData*)), SLOT(customGalleryEvent(CustomGalleryData*)));
+    connect(dwCustomGalleries, SIGNAL(onGallery(CustomGalleryData*)), SLOT(customGalleryEvent(CustomGalleryData*)));
+    connect(dwCustomGalleries, SIGNAL(onGotoKey(KeyData*, CustomGalleryData*)), SLOT(gotoKeyEvent(KeyData*, CustomGalleryData*)));
 
-    connect(pUi->pdwKeyGalleriesWindow, SIGNAL(onGallery(CustomGalleryData*)), SLOT(customGalleryEvent(CustomGalleryData*)));
-    connect(pUi->pdwKeyGalleriesWindow, SIGNAL(onGotoGallery(CustomGalleryData*)), SLOT(gotoCustomGalleryEvent(CustomGalleryData*)));
+    connect(dwGalleries, SIGNAL(onBrowse(GalleryData*)), SLOT(browseGalleryEvent(GalleryData*)));
+    connect(dwGalleries, SIGNAL(onAdd(const QString&)), SLOT(addGalleryEvent(const QString&)));
+    connect(dwGalleries, SIGNAL(onGallery(GalleryData*)), SLOT(galleryEvent(GalleryData*)));
 
-    connect(pUi->paExit, SIGNAL(triggered()), SLOT(close()));
+    connect(dwKeys, SIGNAL(onGotoGallery(CustomGalleryData*)), SLOT(gotoCustomGalleryEvent(CustomGalleryData*)));
+    connect(dwKeys, SIGNAL(onGallery(CustomGalleryData*)), SLOT(customGalleryEvent(CustomGalleryData*)));
 
-    //QTimer::singleShot(500, this, SLOT(InitEvent()));
+    connect(ui->aExit, SIGNAL(triggered()), SLOT(close()));
+
     //"http://www.gettyimagesgallery.com/Collections/Archive/Patrick-Lichfield.aspx"
     //"http://wallpaper.metalship.org/en/pictures/Bands59"
     //"http://en.metalship.org/bands/Dimmu%20Borgir"
-    //pUi->pucBrowser->GoTo("http://en.metalship.org/bands/Dimmu%20Borgir");
+    //ui->pucBrowser->GoTo("http://en.metalship.org/bands/Dimmu%20Borgir");
 }
 
-MainWindow::~MainWindow() {
-    if(pClean) {
-        pClean->close();
-        delete pClean;
-        pClean = NULL;
+MainWindow::~MainWindow()
+{
+    if(browser) {
+        browser->close();
+        delete browser;
+        browser = NULL;
     }
-    if(pBrowser) {
-        pBrowser->close();
-        delete pBrowser;
-        pBrowser = NULL;
+    if(gallery) {
+        gallery->close();
+        delete gallery;
+        gallery = NULL;
     }
-    if(pGallery) {
-        pGallery->close();
-        delete pGallery;
-        pGallery = NULL;
+    if(customGallery) {
+        customGallery->close();
+        delete customGallery;
+        customGallery = NULL;
     }
-    if(pCustomGallery) {
-        pCustomGallery->close();
-        delete pCustomGallery;
-        pCustomGallery = NULL;
+    delete ui;
+}
+
+void MainWindow::gotoCustomGalleryItemEvent(CustomGalleryItemData* item)
+{
+    dwCustomGalleries->setVisible(true);
+    Config::getInstance()->setIsCustomGalleriesWindow(true);
+
+    dwCustomGalleries->selectGallery(item->getCustomGallery());
+
+    if(!isCustomGallery || customGallery->getGallery() != item->getCustomGallery()) {
+        customGalleryEvent(item->getCustomGallery());
     }
-    delete pUi;
+    customGallery->selectItem(item);
 }
 
-void MainWindow::customGalleriesWindowEvent(bool value) {
-    Config::Self()->IsCustomGalleriesWindow(value);
+void MainWindow::gotoCustomGalleryEvent(CustomGalleryData* value)
+{
+    dwCustomGalleries->setVisible(true);
+    Config::getInstance()->setIsCustomGalleriesWindow(true);
+
+    dwCustomGalleries->selectGallery(value);
 }
 
-void MainWindow::keyGalleriesWindowEvent(bool value) {
-    Config::Self()->IsKeyGalleriesWindow(value);
+void MainWindow::gotoGalleryItemEvent(GalleryItemData* item)
+{
+    dwGalleries->setVisible(true);
+    Config::getInstance()->setIsGalleriesWindow(true);
+
+    dwGalleries->selectGallery(item->getGallery());
+
+    if(!isGallery || gallery->getGallery() != item->getGallery()) {
+        galleryEvent(item->getGallery());
+    }
+    gallery->selectItem(item);
 }
 
-void MainWindow::galleriesWindowEvent(bool value) {
-    Config::Self()->IsGalleriesWindow(value);
+void MainWindow::gotoKeyEvent(KeyData* key, CustomGalleryData* gallery)
+{
+    dwKeys->setVisible(true);
+    Config::getInstance()->setIsKeyGalleriesWindow(true);
+
+    dwKeys->selectKey(key, gallery);
 }
 
-void MainWindow::downloadsWindowEvent(bool value) {
-    Config::Self()->IsDownloadsWindow(value);
-}
-
-void MainWindow::gotoCustomGalleryEvent(CustomGalleryData* value) {
-    pUi->pdwCustomGalleriesWindow->setVisible(true);
-    Config::Self()->IsCustomGalleriesWindow(true);
-
-    pUi->pdwCustomGalleriesWindow->selectGallery(value);
-}
-
-void MainWindow::customGalleryEvent(CustomGalleryData* value) {
-    pUi->plLayout->removeWidget(pClean);
-    pClean->setParent(NULL);
-    if(pCustomGallery == NULL) {
-        pCustomGallery = new CustomGalleryControl();
-        connect(pCustomGallery->Title()->CloseAction(), SIGNAL(triggered()), SLOT(ExitCustomGalleryEvent()));
+void MainWindow::customGalleryEvent(CustomGalleryData* value)
+{
+    if(customGallery == NULL) {
+        customGallery = new CustomGalleryControl(this);
+        connect(customGallery->getTitle()->getCloseAction(), SIGNAL(triggered()), SLOT(exitCustomGalleryEvent()));
+        connect(customGallery, SIGNAL(onGotoItem(GalleryItemData*)), SLOT(gotoGalleryItemEvent(GalleryItemData*)));
     }
     if(!isCustomGallery) {
-        pUi->plLayout->addWidget(pCustomGallery);
+        splitter->addWidget(customGallery);
         isCustomGallery = true;
     }
-    pCustomGallery->Gallery(value);
+    customGallery->setGallery(value);
 }
 
-void MainWindow::delCustomGalleryEvent(CustomGalleryData* gallery)
+void MainWindow::browseGalleryEvent(GalleryData* value)
 {
-    if(this->pCustomGallery && this->pCustomGallery->Gallery() == gallery) {
+    showBrowser();
+    browser->goTo(value);
+}
+
+void MainWindow::galleryEvent(GalleryData* value)
+{
+    if(isBrowser) {
+        browser->setParent(NULL);
+        isBrowser = false;
+    }
+    if(gallery == NULL) {
+        gallery = new GalleryControl(this);
+        connect(gallery->getTitle()->getCloseAction(), SIGNAL(triggered()), SLOT(exitGalleryEvent()));
+        connect(gallery, SIGNAL(onGotoItem(CustomGalleryItemData*)), SLOT(gotoCustomGalleryItemEvent(CustomGalleryItemData*)));
+    }
+    if(!isGallery) {
         if(isCustomGallery) {
-            pUi->plLayout->removeWidget(this->pCustomGallery);
-            this->pCustomGallery->setParent(NULL);
-            isCustomGallery = false;
+            splitter->insertWidget(0, gallery);
+        } else {
+            splitter->addWidget(gallery);
         }
-        this->pCustomGallery->Gallery(NULL);
+        isGallery = true;
     }
+    gallery->setGallery(value);
 }
 
-void MainWindow::delGalleryEvent(GalleryData* gallery)
+void MainWindow::addGalleryEvent(const QString& source)
 {
-    if(this->pGallery && this->pGallery->Gallery() == gallery) {
-        if(isGallery) {
-            pUi->plLayout->removeWidget(this->pGallery);
-            this->pGallery->setParent(NULL);
-            isGallery = false;
-        }
-        this->pGallery->Gallery(NULL);
-    }
-    if(this->pCustomGallery) {
-        this->pCustomGallery->Gallery(this->pCustomGallery->Gallery());
-    }
-}
-
-void MainWindow::AddGalleryEvent(const QString& source) {
     if(source.startsWith("http://", Qt::CaseInsensitive)) {
-        pUi->plLayout->removeWidget(pClean);
-        pClean->setParent(NULL);
-        if(isGallery) {
-            pUi->plLayout->removeWidget(pGallery);
-            pGallery->setParent(NULL);
-            isGallery = false;
-        }
-        if(pBrowser == NULL) {
-            pBrowser = new BrowserControl();
-            connect(pBrowser->Title()->CloseAction(), SIGNAL(triggered()), SLOT(ExitBrowserEvent()));
-        }
-        if(!isBrowser) {
-            if(isCustomGallery) {
-                pUi->plLayout->insertWidget(0, pBrowser);
-            } else {
-                pUi->plLayout->addWidget(pBrowser);
-            }
-            isBrowser = true;
-        }
-        pBrowser->GoTo(source);
+        showBrowser();
+        browser->goTo(source);
     } else {
         GalleryHandler::getInstance()->addFileGallery(source);
     }
 }
 
-void MainWindow::BrowseGalleryEvent(GalleryData* pValue) {
-    pUi->plLayout->removeWidget(pClean);
-    pClean->setParent(NULL);
+void MainWindow::delCustomGalleryEvent(CustomGalleryData* gallery)
+{
+    if(this->customGallery && this->customGallery->getGallery() == gallery) {
+        if(isCustomGallery) {
+            this->customGallery->setParent(NULL);
+            isCustomGallery = false;
+        }
+        this->customGallery->setGallery(NULL);
+    }
+}
+
+void MainWindow::delGalleryEvent(GalleryData* gallery)
+{
+    if(this->gallery && this->gallery->getGallery() == gallery) {
+        if(isGallery) {
+            this->gallery->setParent(NULL);
+            isGallery = false;
+        }
+        this->gallery->setGallery(NULL);
+    }
+    if(this->customGallery) {
+        this->customGallery->setGallery(this->customGallery->getGallery());
+    }
+}
+
+void MainWindow::customGalleriesWindowEvent(bool value)
+{
+    Config::getInstance()->setIsCustomGalleriesWindow(value);
+}
+
+void MainWindow::keyGalleriesWindowEvent(bool value)
+{
+    Config::getInstance()->setIsKeyGalleriesWindow(value);
+}
+
+void MainWindow::galleriesWindowEvent(bool value)
+{
+    Config::getInstance()->setIsGalleriesWindow(value);
+}
+
+void MainWindow::downloadsWindowEvent(bool value)
+{
+    Config::getInstance()->setIsDownloadsWindow(value);
+}
+
+void MainWindow::exitCustomGalleryEvent()
+{
+    customGallery->setParent(NULL);
+    isCustomGallery = false;
+}
+
+void MainWindow::exitGalleryEvent()
+{
+    gallery->setParent(NULL);
+    isGallery = false;
+}
+
+void MainWindow::exitBrowserEvent()
+{
+    browser->setParent(NULL);
+    isBrowser = false;
+}
+
+void MainWindow::showBrowser()
+{
     if(isGallery) {
-        pUi->plLayout->removeWidget(pGallery);
-        pGallery->setParent(NULL);
+        gallery->setParent(NULL);
         isGallery = false;
     }
-    if(pBrowser == NULL) {
-        pBrowser = new BrowserControl();
-        connect(pBrowser->Title()->CloseAction(), SIGNAL(triggered()), SLOT(ExitBrowserEvent()));
+    if(browser == NULL) {
+        browser = new BrowserControl(this);
+        connect(browser->getTitle()->getCloseAction(), SIGNAL(triggered()), SLOT(exitBrowserEvent()));
     }
     if(!isBrowser) {
         if(isCustomGallery) {
-            pUi->plLayout->insertWidget(0, pBrowser);
+            splitter->insertWidget(0, browser);
         } else {
-            pUi->plLayout->addWidget(pBrowser);
+            splitter->addWidget(browser);
         }
         isBrowser = true;
-    }
-    pBrowser->GoTo(pValue);
-}
-
-void MainWindow::GalleryEvent(GalleryData* pValue) {
-    pUi->plLayout->removeWidget(pClean);
-    pClean->setParent(NULL);
-    if(isBrowser) {
-        pUi->plLayout->removeWidget(pBrowser);
-        pBrowser->setParent(NULL);
-        isBrowser = false;
-    }
-    if(pGallery == NULL) {
-        pGallery = new GalleryControl();
-        connect(pGallery->Title()->CloseAction(), SIGNAL(triggered()), SLOT(ExitGalleryEvent()));
-    }
-    if(!isGallery) {
-        if(isCustomGallery) {
-            pUi->plLayout->insertWidget(0, pGallery);
-        } else {
-            pUi->plLayout->addWidget(pGallery);
-        }
-        isGallery = true;
-    }
-    pGallery->Gallery(pValue);
-}
-
-void MainWindow::ExitBrowserEvent() {
-    pUi->plLayout->removeWidget(pBrowser);
-    pBrowser->setParent(NULL);
-    isBrowser = false;
-    pUi->plLayout->addWidget(pClean);
-}
-
-void MainWindow::ExitGalleryEvent() {
-    pUi->plLayout->removeWidget(pGallery);
-    pGallery->setParent(NULL);
-    isGallery = false;
-    if(!isCustomGallery) {
-        pUi->plLayout->addWidget(pClean);
-    }
-}
-
-void MainWindow::ExitCustomGalleryEvent() {
-    pUi->plLayout->removeWidget(pCustomGallery);
-    pCustomGallery->setParent(NULL);
-    isCustomGallery = false;
-    if(!isGallery) {
-        pUi->plLayout->addWidget(pClean);
     }
 }

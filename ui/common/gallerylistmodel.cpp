@@ -1,9 +1,8 @@
 #define MAX_ICON_SIZE 300
 
+#include <QtCore/QSortFilterProxyModel>
 #include <QtCore/QDebug>
 #include <QtCore/QTimer>
-
-#include <QtGui/QSortFilterProxyModel>
 
 #include "data/customgalleryitemdata.h"
 #include "data/customgallerydata.h"
@@ -11,29 +10,27 @@
 #include "data/gallerydata.h"
 
 #include "handlers/customgalleryhandler.h"
+#include "handlers/galleryhandler.h"
 
 #include "ui/common/gallerylistitem.h"
 
 #include "ui/common/gallerylistmodel.h"
 
-GalleryListModel::GalleryListModel(GalleryData& gallery, int size, QObject* pParent): QAbstractListModel(pParent), pGallery(NULL), pProxy(NULL) {
-    type = Config::ETypeGallery;
-    pGallery = &gallery;
-    this->size = size;
-
-    pProxy = new QSortFilterProxyModel(pParent);
-    pProxy->setSourceModel(this);
-
-    QTimer::singleShot(100, this, SLOT(loadEvent()));
-}
-
-GalleryListModel::GalleryListModel(CustomGalleryData& gallery, int size, QObject* pParent): QAbstractListModel(pParent), pGallery(NULL), pProxy(NULL) {
+GalleryListModel::GalleryListModel(CustomGalleryData& gallery, int size, QObject* parent): QAbstractListModel(parent), gallery(NULL), proxy(NULL)
+{
     type = Config::ETypeCustomGallery;
-    pGallery = &gallery;
+    this->gallery = &gallery;
     this->size = size;
 
-    pProxy = new QSortFilterProxyModel(pParent);
-    pProxy->setSourceModel(this);
+    foreach(CustomGalleryItemData* item, gallery.getItems()) {
+        if(item->getCustomId() == 0) {
+            items.append(new GalleryListItem(*item, size));
+        }
+    }
+
+    proxy = new QSortFilterProxyModel(parent);
+    proxy->setSourceModel(this);
+    proxy->sort(0);
 
     connect(CustomGalleryHandler::getInstance(), SIGNAL(onUpdCustomGalleryItemAngle(CustomGalleryItemData*)), this, SLOT(updCustomGalleryItemAngleEvent(CustomGalleryItemData*)));
     connect(CustomGalleryHandler::getInstance(), SIGNAL(onUpdCustomGalleryItem(CustomGalleryItemData*)), this, SLOT(updCustomGalleryItemEvent(CustomGalleryItemData*)));
@@ -43,39 +40,82 @@ GalleryListModel::GalleryListModel(CustomGalleryData& gallery, int size, QObject
     QTimer::singleShot(100, this, SLOT(loadEvent()));
 }
 
-GalleryListModel::~GalleryListModel() {
-    if(pProxy) {
-        delete pProxy;
-        pProxy = NULL;
+GalleryListModel::GalleryListModel(GalleryData& gallery, int size, QObject* parent): QAbstractListModel(parent), gallery(NULL), proxy(NULL)
+{
+    type = Config::ETypeGallery;
+    this->gallery = &gallery;
+    this->size = size;
+
+    foreach(GalleryItemData* item, gallery.getItems()) {
+        items.append(new GalleryListItem(*item, size));
+    }
+
+    proxy = new QSortFilterProxyModel(parent);
+    proxy->setSourceModel(this);
+    proxy->sort(0);
+
+    connect(GalleryHandler::getInstance(), SIGNAL(onDelGalleryItem(GalleryItemData*)), this, SLOT(delGalleryItemEvent(GalleryItemData*)));
+
+    QTimer::singleShot(100, this, SLOT(loadEvent()));
+}
+
+GalleryListModel::~GalleryListModel()
+{
+    if(proxy) {
+        delete proxy;
+        proxy = NULL;
     }
 
     qDeleteAll(items);
-    /*foreach(GalleryListItem* pItem, items) {
-        delete pItem;
-    }*/
 }
 
-Config::ItemTypeEnum GalleryListModel::Type() const {
+Config::ItemTypeEnum GalleryListModel::getType() const
+{
     return type;
 }
 
-QSortFilterProxyModel* GalleryListModel::Proxy() {
-    return pProxy;
+QSortFilterProxyModel* GalleryListModel::getProxy()
+{
+    return proxy;
 }
 
-QModelIndex GalleryListModel::GetCurrentItem(int row) const {
-    return pProxy->index(row, 0);
+QModelIndex GalleryListModel::getIndexByItem(CustomGalleryItemData* item)
+{
+    while(item->getCustomId()) {
+        foreach(CustomGalleryItemData* i, item->getCustomGallery()->getItems()) {
+            if(item->getCustomId() == i->getId()) {
+                item = i;
+                break;
+            }
+        }
+    }
+    GalleryListItem* i = getItemByGalleryItem(item);
+    return proxy->mapFromSource(index(items.indexOf(i), 0));
 }
 
-QModelIndex GalleryListModel::GetBackItem(int row) const {
-    return pProxy->index(row - 1, 0);
+QModelIndex GalleryListModel::getIndexByItem(GalleryItemData* item)
+{
+    GalleryListItem* i = getItemByGalleryItem(item);
+    return proxy->mapFromSource(index(items.indexOf(i), 0));
 }
 
-QModelIndex GalleryListModel::GetNextItem(int row) const {
-    return pProxy->index(row + 1, 0);
+QModelIndex GalleryListModel::getCurrentItem(int row) const
+{
+    return proxy->index(row, 0);
 }
 
-void GalleryListModel::ChangeItemsSize(int size) {
+QModelIndex GalleryListModel::getBackItem(int row) const
+{
+    return proxy->index(row - 1, 0);
+}
+
+QModelIndex GalleryListModel::getNextItem(int row) const
+{
+    return proxy->index(row + 1, 0);
+}
+
+void GalleryListModel::changeItemsSize(int size)
+{
     if(this->size != size) {
         this->size = size;
 
@@ -86,81 +126,48 @@ void GalleryListModel::ChangeItemsSize(int size) {
         items.clear();
         endRemoveRows();
 
-        QTimer::singleShot(100, this, SLOT(loadEvent()));
+        QTimer::singleShot(1, this, SLOT(loadEvent()));
     }
 }
 
-Qt::ItemFlags GalleryListModel::flags(const QModelIndex& index) const {
-        return QAbstractListModel::flags(index) | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
-}
-
-int GalleryListModel::rowCount(const QModelIndex&) const {
-    return items.count();
-}
-
-QVariant GalleryListModel::data(const QModelIndex& index, int role) const {
+QVariant GalleryListModel::data(const QModelIndex& index, int role) const
+{
     switch(role) {
     case Qt::DisplayRole:
-        return QVariant(items[index.row()]->Name());
+        return QVariant(items[index.row()]->getName());
 
     case Qt::DecorationRole:
-        return QVariant(items[index.row()]->Pixmap());
+        return QVariant(items[index.row()]->getPixmap());
 
     case Qt::UserRole:
         return qVariantFromValue(items[index.row()]);
 
     case Qt::UserRole + 1:
         if(type == Config::ETypeGallery) {
-            return qVariantFromValue(reinterpret_cast<GalleryItemData*>(items.at(index.row())->Item()));
+            return qVariantFromValue(reinterpret_cast<GalleryItemData*>(items.at(index.row())->getItem()));
         } else if(type == Config::ETypeCustomGallery) {
-            return qVariantFromValue(reinterpret_cast<CustomGalleryItemData*>(items.at(index.row())->Item()));
+            return qVariantFromValue(reinterpret_cast<CustomGalleryItemData*>(items.at(index.row())->getItem()));
         }
     }
     return QVariant();
 }
 
-void GalleryListModel::updCustomGalleryItemAngleEvent(CustomGalleryItemData* item)
+Qt::ItemFlags GalleryListModel::flags(const QModelIndex& index) const
 {
-    CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(pGallery);
-    if(g == item->getCustomGallery()) {
-        delCustomGalleryItemEvent(item);
-        addCustomGalleryItemEvent(item);
-        pProxy->sort(0);
-    }
+        return QAbstractListModel::flags(index) | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
 }
 
-void GalleryListModel::updCustomGalleryItemEvent(CustomGalleryItemData* item)
+int GalleryListModel::rowCount(const QModelIndex& index) const
 {
-    CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(pGallery);
-    if(g == item->getCustomGallery()) {
-        GalleryListItem* i = GetItemByGalleryItem(item);
-        if(i == NULL && item->getCustomId() == 0) {
-            addCustomGalleryItemEvent(item);
-            pProxy->sort(0);
-        } else if(i != NULL && item->getCustomId() != 0) {
-            delCustomGalleryItemEvent(item);
-        } else if(i != NULL) {
-            const QModelIndex& in = index(items.indexOf(i));
-            dataChanged(in, in);
-        }
-    }
+    (void)index;
+    return items.count();
 }
 
-void GalleryListModel::addCustomGalleryItemEvent(CustomGalleryItemData* item)
+void GalleryListModel::delGalleryItemEvent(GalleryItemData* item)
 {
-    CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(pGallery);
-    if(g == item->getCustomGallery()) {
-        beginInsertRows(QModelIndex(), items.count(), items.count());
-        items.append(new GalleryListItem(*item, size));
-        endInsertRows();
-    }
-}
-
-void GalleryListModel::delCustomGalleryItemEvent(CustomGalleryItemData* item)
-{
-    CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(pGallery);
-    if(g == item->getCustomGallery()) {
-        GalleryListItem* i = GetItemByGalleryItem(item);
+    GalleryData* g = reinterpret_cast<GalleryData*>(gallery);
+    if(g == item->getGallery()) {
+        GalleryListItem* i = getItemByGalleryItem(item);
         if(i) {
             int index = items.indexOf(i);
 
@@ -172,48 +179,121 @@ void GalleryListModel::delCustomGalleryItemEvent(CustomGalleryItemData* item)
     }
 }
 
-void GalleryListModel::loadEvent() {
-    if(type == Config::ETypeGallery) {
-        GalleryData* g = reinterpret_cast<GalleryData*>(pGallery);
+void GalleryListModel::updCustomGalleryItemAngleEvent(CustomGalleryItemData* item)
+{
+    CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(gallery);
+    if(g == item->getCustomGallery()) {
+        GalleryListItem* i = getItemByGalleryItem(item);
+        i->loadPixmap(*item, size);
+        const QModelIndex& in = getIndexByItem(item);
+        emit dataChanged(in, in);
+
+        //const QModelIndex& i = getIndexByItem(item);
+        /*delCustomGalleryItemEvent(item);
+        addCustomGalleryItemEvent(item);
+        proxy->sort(0);*/
+    }
+}
+
+void GalleryListModel::updCustomGalleryItemEvent(CustomGalleryItemData* item)
+{
+    CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(gallery);
+    if(g == item->getCustomGallery()) {
+        GalleryListItem* i = getItemByGalleryItem(item);
+        if(i == NULL && item->getCustomId() == 0) {
+            addCustomGalleryItemEvent(item);
+            proxy->sort(0);
+        } else if(i != NULL && item->getCustomId() != 0) {
+            delCustomGalleryItemEvent(item);
+        } else if(i != NULL) {
+            const QModelIndex& in = index(items.indexOf(i));
+            dataChanged(in, in);
+        }
+    }
+}
+
+void GalleryListModel::addCustomGalleryItemEvent(CustomGalleryItemData* item)
+{
+    CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(gallery);
+    if(g == item->getCustomGallery()) {
+        beginInsertRows(QModelIndex(), items.count(), items.count());
+        items.append(new GalleryListItem(*item, size));
+        endInsertRows();
+    }
+}
+
+void GalleryListModel::delCustomGalleryItemEvent(CustomGalleryItemData* item)
+{
+    CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(gallery);
+    if(g == item->getCustomGallery()) {
+        GalleryListItem* i = getItemByGalleryItem(item);
+        if(i) {
+            int index = items.indexOf(i);
+
+            beginRemoveRows(QModelIndex(), index, index);
+            delete items.at(index);
+            items.removeAt(index);
+            endRemoveRows();
+        }
+    }
+}
+
+void GalleryListModel::loadEvent()
+{
+    foreach(GalleryListItem* item, items) {
+        if(!item->isLoad) {
+            item->loadPixmap(size);
+            const QModelIndex& in = proxy->mapFromSource(index(items.indexOf(item), 0));
+            emit dataChanged(in, in);
+
+            QTimer::singleShot(1, this, SLOT(loadEvent()));
+            break;
+        }
+     }
+
+    /*if(type == Config::ETypeGallery) {
+        GalleryData* g = reinterpret_cast<GalleryData*>(gallery);
         foreach(GalleryItemData* item, g->getItems()) {
-            if(GetItemByGalleryItem(item) == NULL) {
+            if(getItemByGalleryItem(item) == NULL) {
                 beginInsertRows(QModelIndex(), items.count(), items.count());
                 items.append(new GalleryListItem(*item, size));
                 endInsertRows();
 
-                QTimer::singleShot(100, this, SLOT(loadEvent()));
+                QTimer::singleShot(1, this, SLOT(loadEvent()));
                 break;
             }
         }
     } else if(type == Config::ETypeCustomGallery) {
-        CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(pGallery);
+        CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(gallery);
         foreach(CustomGalleryItemData* item, g->getItems()) {
-            if(item->getCustomId() == 0 && GetItemByGalleryItem(item) == NULL) {
+            if(item->getCustomId() == 0 && getItemByGalleryItem(item) == NULL) {
                 beginInsertRows(QModelIndex(), items.count(), items.count());
                 items.append(new GalleryListItem(*item, size));
                 endInsertRows();
 
-                QTimer::singleShot(100, this, SLOT(loadEvent()));
+                QTimer::singleShot(1, this, SLOT(loadEvent()));
                 break;
             }
         }
     }
-    pProxy->sort(0);
+    proxy->sort(0);*/
 }
 
-GalleryListItem* GalleryListModel::GetItemByGalleryItem(GalleryItemData* pItem) {
-    foreach(GalleryListItem* pi, items) {
-        if(reinterpret_cast<GalleryItemData*>(pi->Item()) == pItem) {
-            return pi;
+GalleryListItem* GalleryListModel::getItemByGalleryItem(CustomGalleryItemData* item)
+{
+    foreach(GalleryListItem* i, items) {
+        if(reinterpret_cast<CustomGalleryItemData*>(i->getItem()) == item) {
+            return i;
         }
     }
     return NULL;
 }
 
-GalleryListItem* GalleryListModel::GetItemByGalleryItem(CustomGalleryItemData* pItem) {
-    foreach(GalleryListItem* pi, items) {
-        if(reinterpret_cast<CustomGalleryItemData*>(pi->Item()) == pItem) {
-            return pi;
+GalleryListItem* GalleryListModel::getItemByGalleryItem(GalleryItemData* item)
+{
+    foreach(GalleryListItem* i, items) {
+        if(reinterpret_cast<GalleryItemData*>(i->getItem()) == item) {
+            return i;
         }
     }
     return NULL;

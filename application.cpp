@@ -1,4 +1,5 @@
 #include <QtCore/QDebug>
+#include <QtCore/QTime>
 
 #include "config.h"
 
@@ -7,6 +8,7 @@
 #include "data/gallerydata.h"
 
 #include "handlers/customgalleryhandler.h"
+#include "handlers/namespoolhandler.h"
 #include "handlers/downloadhandler.h"
 #include "handlers/galleryhandler.h"
 #include "handlers/keyhandler.h"
@@ -28,10 +30,15 @@ Application* Application::createInstance(const QString& path)
 
         DbHandler* db = DbHandler::createInstance(path);
         bool res = db;
+        res && (res = NamesPoolHandler::createInstance());
         res && (res = db->getExtensions(tempApp->extensions));
+        qDebug() << QTime::currentTime() << "loading galleries";
         res && (res = GalleryHandler::createInstance(tempApp));
-        res && (res = CustomGalleryHandler::createInstance(tempApp));
-        res && (res = KeyHandler::createInstance(tempApp));
+        qDebug() << QTime::currentTime() << "loading custom galleries";
+        res && (res = CustomGalleryHandler::createInstance());
+        qDebug() << QTime::currentTime() << "loading keys";
+        res && (res = KeyHandler::createInstance());
+        qDebug() << QTime::currentTime() << "loading ralations";
         if(res) {
             foreach(GalleryData* gallery, GalleryHandler::getInstance()->getGalleries()) {
                 foreach(GalleryItemData* item, gallery->getItems()) {
@@ -41,6 +48,7 @@ Application* Application::createInstance(const QString& path)
                 }
             }
         }
+        qDebug() << QTime::currentTime() << "loading finished";
         if(res) {
             app = tempApp;
         } else {
@@ -50,7 +58,7 @@ Application* Application::createInstance(const QString& path)
     return app;
 }
 
-Application::Application(): activeDownload(0)
+Application::Application(): network(NULL), activeDownload(0)
 {
 }
 
@@ -59,6 +67,10 @@ Application::~Application()
     app = NULL;
     foreach(DownloadHandler* downloadHandler, queue) {
         delete downloadHandler;
+    }
+    if(network) {
+        delete network;
+        network = NULL;
     }
     if(KeyHandler::getInstance())
     {
@@ -78,6 +90,10 @@ Application::~Application()
     if(DbHandler::getInstance())
     {
         delete DbHandler::getInstance();
+    }
+    if(NamesPoolHandler::getInstance())
+    {
+        delete NamesPoolHandler::getInstance();
     }
 }
 
@@ -113,13 +129,16 @@ ExtensionData* Application::getExtensionById(int id) const
 
 void Application::addToDownload(GalleryItemData& value)
 {
+    if(!network) {
+        network = new QNetworkAccessManager(this);
+    }
     DownloadHandler* downloader = new DownloadHandler(value);
     connect(downloader, SIGNAL(onFinish(DownloadHandler*, bool)), SLOT(finishEvent(DownloadHandler*, bool)));
 
     queue.enqueue(downloader);
     emit onDownloadEnqueue(downloader);
-    if(activeDownload < Config::Self()->ActiveDownloadCount()) {
-        if(downloader->load()) {
+    if(activeDownload < Config::getInstance()->getActiveDownloadCount()) {
+        if(downloader->load(network)) {
             activeDownload++;
         } else {
             value.setStatus(GalleryItemData::StatusError);
@@ -148,11 +167,11 @@ void Application::finishEvent(DownloadHandler* sender, bool res)
     delete sender;
     activeDownload--;
 
-    if(activeDownload < Config::Self()->ActiveDownloadCount()) {
+    if(activeDownload < Config::getInstance()->getActiveDownloadCount()) {
         for(int i = 0; i < queue.count(); i++) {
             DownloadHandler* downloader = queue[i];
             if(!downloader->isDownload()) {
-                if(downloader->load()) {
+                if(downloader->load(network)) {
                     activeDownload++;
                     break;
                 } else {

@@ -1,28 +1,30 @@
 #ifndef ADDGALLERYDIALOG_H
 #define ADDGALLERYDIALOG_H
 
-#include <QtGui/QDialog>
+#include <QtWidgets/QDialog>
 
-namespace Ui {
+namespace Ui
+{
     class AddGalleryDialog;
 }
 
-class AddGalleryDialog: public QDialog {
+class AddGalleryDialog: public QDialog
+{
     Q_OBJECT
 
 public:
-    explicit AddGalleryDialog(QWidget* pParent = NULL);
+    explicit AddGalleryDialog(QWidget* parent);
     virtual ~AddGalleryDialog();
 
 public:
-    QString Source();
+    QString getSource();
 
 private slots:
-    void TextChangedEvent(const QString& text);
-    void FolderEvent();
+    void textChangedEvent(const QString& text);
+    void folderEvent();
 
 private:
-    Ui::AddGalleryDialog* pUi;
+    Ui::AddGalleryDialog* ui;
 };
 
 #endif // ADDGALLERYDIALOG_H

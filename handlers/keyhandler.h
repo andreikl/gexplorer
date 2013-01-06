@@ -13,7 +13,7 @@ class KeyHandler: public QObject
     Q_OBJECT
 
 public:
-    static KeyHandler* createInstance(Application* app);
+    static KeyHandler* createInstance();
     static KeyHandler* getInstance();
 
 private:
@@ -38,7 +38,9 @@ public:
 
 signals:
     void onUpdKey(KeyData* pValue);
+    void onAddToKey(KeyData* pValue, CustomGalleryData* gallery);
     void onAddKey(KeyData* pValue);
+    void onDelFromKey(KeyData* pValue, CustomGalleryData* gallery);
     void onDelKey(KeyData* pValue);
 
 private:

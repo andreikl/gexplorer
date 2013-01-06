@@ -1,25 +1,29 @@
 #include "ui/dialogs/searchdialog.h"
 #include "ui_searchdialog.h"
 
-SearchDialog::SearchDialog(QWidget* pParent, const QString& url, const QString& path, const QString& extension): QDialog(pParent), pUi(new Ui::SearchDialog) {
-    pUi->setupUi(this);
+SearchDialog::SearchDialog(QWidget* parent, const QString& url, const QString& path, const QString& extension): QDialog(parent), ui(new Ui::SearchDialog)
+{
+    ui->setupUi(this);
 
-    pUi->pleUrl->setText(url);
-    pUi->pleSearchPath->setText(path);
-    pUi->pleExtension->setText(extension);
+    ui->leUrl->setText(url);
+    ui->leSearchPath->setText(path);
+    ui->leExtension->setText(extension);
 
-    connect(pUi->ppbSearch, SIGNAL(clicked()), SLOT(accept()));
-    connect(pUi->ppbCancel, SIGNAL(clicked()), SLOT(close()));
+    connect(ui->pbSearch, SIGNAL(clicked()), SLOT(accept()));
+    connect(ui->pbCancel, SIGNAL(clicked()), SLOT(close()));
 }
 
-SearchDialog::~SearchDialog() {
-    delete pUi;
+SearchDialog::~SearchDialog()
+{
+    delete ui;
 }
 
-QString SearchDialog::Path() {
-    return pUi->pleSearchPath->text();
+QString SearchDialog::getExtension()
+{
+    return ui->leExtension->text();
 }
 
-QString SearchDialog::Extension() {
-    return pUi->pleExtension->text();
+QString SearchDialog::getPath()
+{
+    return ui->leSearchPath->text();
 }

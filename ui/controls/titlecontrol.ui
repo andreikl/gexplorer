@@ -13,7 +13,7 @@
   <property name="styleSheet">
    <string notr="true">.QToolBar,.QWidget {background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgb(128, 128, 128), stop:1 rgb(64, 64, 64))}</string>
   </property>
-  <layout class="QHBoxLayout" name="plLayout">
+  <layout class="QHBoxLayout" name="lLayout">
    <property name="spacing">
     <number>0</number>
    </property>

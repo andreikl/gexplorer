@@ -1,36 +1,41 @@
-#include "ui/controls/titlecontrol.h"
+#include <QtWidgets/QToolBar>
 
+#include "ui/controls/titlecontrol.h"
 #include "ui_titlecontrol.h"
 
-TitleControl::TitleControl(QWidget* pParent): QWidget(pParent), pUi(new Ui::TitleControl) {
-    pUi->setupUi(this);
+TitleControl::TitleControl(QWidget* parent): QWidget(parent), ui(new Ui::TitleControl)
+{
+    ui->setupUi(this);
 
-    paClose = new QAction("&Close", this);
-    paClose->setStatusTip("Close the window");
-    paClose->setIcon(QIcon(":/res/resources/exit.png"));
+    aClose = new QAction("&Close", this);
+    aClose->setStatusTip("Close the window");
+    aClose->setIcon(QIcon(":/res/resources/exit.png"));
 
-    ptbToolBar = new QToolBar(this);
-    ptbToolBar->setVisible(false);
+    tbToolBar = new QToolBar(this);
+    tbToolBar->setVisible(false);
 
-    ptbSystemBar = new QToolBar(this);
-    ptbSystemBar->addAction(paClose);
+    tbSystemBar = new QToolBar(this);
+    tbSystemBar->addAction(aClose);
 
-    QWidget* pwEmpty = new QWidget(this);
-    pwEmpty->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    QWidget* wEmpty = new QWidget(this);
+    wEmpty->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-    pUi->plLayout->addWidget(ptbToolBar);
-    pUi->plLayout->addWidget(pwEmpty);
-    pUi->plLayout->addWidget(ptbSystemBar);
+    ui->lLayout->addWidget(tbToolBar);
+    ui->lLayout->addWidget(wEmpty);
+    ui->lLayout->addWidget(tbSystemBar);
 }
 
-TitleControl::~TitleControl() {
-    delete pUi;
+TitleControl::~TitleControl()
+{
+    delete ui;
 }
 
-QAction* TitleControl::CloseAction() {
-    return paClose;
+QAction* TitleControl::getCloseAction()
+{
+    return aClose;
 }
 
-QToolBar* TitleControl::ToolBar() {
-    return ptbToolBar;
+QToolBar* TitleControl::getToolBar()
+{
+    return tbToolBar;
 }

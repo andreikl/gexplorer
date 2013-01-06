@@ -13,43 +13,43 @@
   <property name="windowTitle">
    <string>Search same urls</string>
   </property>
-  <layout class="QVBoxLayout" name="plLayout">
+  <layout class="QVBoxLayout" name="lLayout">
    <item>
-    <widget class="QLabel" name="plUrl">
+    <widget class="QLabel" name="lUrl">
      <property name="text">
       <string>Url:</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QLineEdit" name="pleUrl">
+    <widget class="QLineEdit" name="leUrl">
      <property name="readOnly">
       <bool>true</bool>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="plPath">
+    <widget class="QLabel" name="lPath">
      <property name="text">
       <string>Search path:</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QLineEdit" name="pleSearchPath"/>
+    <widget class="QLineEdit" name="leSearchPath"/>
    </item>
    <item>
-    <widget class="QLabel" name="plExtension">
+    <widget class="QLabel" name="lExtension">
      <property name="text">
       <string>Extension:</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QLineEdit" name="pleExtension"/>
+    <widget class="QLineEdit" name="leExtension"/>
    </item>
    <item>
-    <widget class="QWidget" name="pwFree" native="true">
+    <widget class="QWidget" name="wFree" native="true">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
@@ -59,8 +59,8 @@
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="pwButtons" native="true">
-     <layout class="QHBoxLayout" name="plButtons">
+    <widget class="QWidget" name="wButtons" native="true">
+     <layout class="QHBoxLayout" name="lButtons">
       <property name="spacing">
        <number>0</number>
       </property>
@@ -68,17 +68,17 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QPushButton" name="ppbSearch">
+       <widget class="QPushButton" name="pbSearch">
         <property name="text">
          <string>Search</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QWidget" name="pwBtnFree" native="true"/>
+       <widget class="QWidget" name="wBtnFree" native="true"/>
       </item>
       <item>
-       <widget class="QPushButton" name="ppbCancel">
+       <widget class="QPushButton" name="pbCancel">
         <property name="text">
          <string>Cancel</string>
         </property>

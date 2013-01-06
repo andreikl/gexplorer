@@ -16,7 +16,13 @@ public:
     virtual ~GStreamerHelper();
 
 public:
-    void startPlay(QWidget* area, int mw, int mh, const QString& path);
+    void getPosAndLen(long int* pos, long int* len);
+    void setPos(long int pos);
+
+    void pause();
+    void play();
+
+    void startPlay(QWidget* area, int mw, int mh, const QString& path, int width = 800, int height = 600);
     void stopPlay();
     bool isPlay();
 

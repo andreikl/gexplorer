@@ -1,41 +1,46 @@
-#include <QtGui/QFileDialog>
+#include <QtWidgets/QFileDialog>
 
 #include "ui/dialogs/addgallerydialog.h"
 #include "ui_addgallerydialog.h"
 
-AddGalleryDialog::AddGalleryDialog(QWidget* pParent): QDialog(pParent), pUi(new Ui::AddGalleryDialog) {
+AddGalleryDialog::AddGalleryDialog(QWidget* parent): QDialog(parent), ui(new Ui::AddGalleryDialog)
+{
     setModal(true);
 
-    pUi->setupUi(this);
+    ui->setupUi(this);
 
-    pUi->ppbAdd->setEnabled(false);
+    ui->pbAdd->setEnabled(false);
 
-    connect(pUi->ptbBrowse, SIGNAL(clicked()), SLOT(FolderEvent()));
-    connect(pUi->pleSource, SIGNAL(textChanged(const QString&)), SLOT(TextChangedEvent(const QString&)));
+    connect(ui->tbBrowse, SIGNAL(clicked()), SLOT(folderEvent()));
+    connect(ui->leSource, SIGNAL(textChanged(const QString&)), SLOT(textChangedEvent(const QString&)));
 
-    connect(pUi->ppbAdd, SIGNAL(clicked()), SLOT(accept()));
-    connect(pUi->ppbCancel, SIGNAL(clicked()), SLOT(close()));
+    connect(ui->pbAdd, SIGNAL(clicked()), SLOT(accept()));
+    connect(ui->pbCancel, SIGNAL(clicked()), SLOT(close()));
 }
 
-AddGalleryDialog::~AddGalleryDialog() {
-    delete pUi;
+AddGalleryDialog::~AddGalleryDialog()
+{
+    delete ui;
 }
 
-QString AddGalleryDialog::Source() {
-    return pUi->pleSource->text();
+QString AddGalleryDialog::getSource()
+{
+    return ui->leSource->text();
 }
 
-void AddGalleryDialog::TextChangedEvent(const QString& text) {
+void AddGalleryDialog::textChangedEvent(const QString& text)
+{
     if(text.length() > 0) {
-        pUi->ppbAdd->setEnabled(true);
+        ui->pbAdd->setEnabled(true);
     } else {
-        pUi->ppbAdd->setEnabled(false);
+        ui->pbAdd->setEnabled(false);
     }
 }
 
-void AddGalleryDialog::FolderEvent() {
+void AddGalleryDialog::folderEvent()
+{
     QString dir = QFileDialog::getExistingDirectory(this, "Open Directory");
     if(!dir.isNull() && !dir.isEmpty()) {
-        pUi->pleSource->setText(dir);
+        ui->leSource->setText(dir);
     }
 }

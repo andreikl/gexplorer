@@ -1,59 +1,59 @@
 #ifndef VIEWERDIALOG_H
 #define VIEWERDIALOG_H
 
-#include <QtGui/QDialog>
-
-QT_BEGIN_NAMESPACE
-class QMenu;
-QT_END_NAMESPACE
+#include <QtWidgets/QDialog>
 
 class GalleryListModel;
 class ViewerControl;
 class TitleControl;
 
-namespace Ui {
+QT_BEGIN_NAMESPACE
+class QMenu;
+QT_END_NAMESPACE
+
+namespace Ui
+{
     class ViewerDialog;
 }
 
-class ViewerDialog: public QDialog {
+class ViewerDialog: public QDialog
+{
     Q_OBJECT
     
 public:
-    explicit ViewerDialog(QWidget* pParent, GalleryListModel& model, int row);
+    explicit ViewerDialog(QWidget* parent, GalleryListModel& model, int row);
     virtual ~ViewerDialog();
 
 protected:
-    void contextMenuEvent(QContextMenuEvent* pEvent);
+    void contextMenuEvent(QContextMenuEvent* event);
 
 private slots:
-    void BackEvent();
-    void NextEvent();
-    void CurrentEvent();
-
-private slots:
-    void TickEvent();
-    void SlideEvent();
-    void CloseEvent();
+    void currentEvent();
+    void slideEvent();
+    void closeEvent();
+    void backEvent();
+    void nextEvent();
+    void tickEvent();
 
 private:
-    void CreateMenuAndActions();
-    void UpdateButtons();
+    void createMenuAndActions();
+    void updateButtons();
 
 private:
     bool isSlide;
 
 private:
-    QMenu* pmMenu;
-    QAction* paBack;
-    QAction* paNext;
-    QAction* paSlide;
+    QAction* aSlide;
+    QAction* aBack;
+    QAction* aNext;
+    QMenu* mMenu;
 
 private:
-    ViewerControl* pViewer;
-    TitleControl* pTitle;
+    ViewerControl* viewer;
+    TitleControl* title;
 
 private:
-    Ui::ViewerDialog* pUi;
+    Ui::ViewerDialog* ui;
 };
 
 #endif // VIEWERDIALOG_H

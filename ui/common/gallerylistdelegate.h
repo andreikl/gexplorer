@@ -1,49 +1,46 @@
 #ifndef GALLERYLISTDELEGATE_H
 #define GALLERYLISTDELEGATE_H
 
-#include <QtGui/QStyledItemDelegate>
-#include <QtGui/QListView>
+#include <QtCore/QModelIndex>
 
-class GalleryListDelegate: public QStyledItemDelegate {
+#include <QtWidgets/QStyledItemDelegate>
+
+QT_BEGIN_NAMESPACE
+class QListView;
+QT_END_NAMESPACE
+
+class CustomGalleryItemData;
+
+class GalleryListDelegate: public QStyledItemDelegate
+{
 public:
-    GalleryListDelegate(QListView* pParent);
+    GalleryListDelegate(QListView* parent);
     virtual ~GalleryListDelegate();
 
 public:
+    void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const;
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const;
-    void paint(QPainter* pPainter, const QStyleOptionViewItem& option, const QModelIndex& index) const;
 
 public:
-    const QModelIndex& DragIndex() const {
-        return dragIndex;
-    }
+    const QModelIndex& getDragIndex() const;
+    bool getIsDragBefore() const;
 
-    bool IsDragBefore() const {
-        return isDragBefore;
-    }
-
-    void DragIndex(const QModelIndex& index, bool isBefore) {
-        lastDragIndex = dragIndex;
-        dragIndex = index;
-        lastIsDragBefore = isDragBefore;
-        isDragBefore = isBefore;
-
-        if(dragIndex.isValid()) {
-            pList->update(dragIndex);
-        }
-        if(lastDragIndex.isValid()) {
-            pList->update(lastDragIndex);
-        }
-    }
+public:
+    void setDragIndex(const QModelIndex& index, bool isBefore);
 
 private:
-    QModelIndex dragIndex;
-    bool isDragBefore;
+    bool getReference(CustomGalleryItemData* item) const;
+
+private:
     QModelIndex lastDragIndex;
+    QModelIndex dragIndex;
+
+private:
+    bool isDragBefore;
     bool lastIsDragBefore;
 
 private:
-    QListView* pList;
+    QListView* list;
 };
 
 #endif // GALLERYLISTDELEGATE_H

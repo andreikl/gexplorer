@@ -1,44 +1,46 @@
 #ifndef UNITEDIALOG_H
 #define UNITEDIALOG_H
 
-#include <QtGui/QDialog>
+#include <QtWidgets/QDialog>
 
 class CustomGalleryItemData;
 
-namespace Ui {
+namespace Ui
+{
     class UniteDialog;
 }
 
-class UniteDialog: public QDialog {
+class UniteDialog: public QDialog
+{
     Q_OBJECT
 
 public:
-    explicit UniteDialog(QWidget* pParent, CustomGalleryItemData& item1, CustomGalleryItemData& item2);
+    explicit UniteDialog(QWidget* parent, CustomGalleryItemData& item1, CustomGalleryItemData& item2);
     virtual ~UniteDialog();
 
 public:
-    bool IsFirst();
+    bool getIsFirst();
 
 private slots:
-    void OnH1Changed(int value);
-    void OnV1Changed(int value);
-    void OnH2Changed(int value);
-    void OnV2Changed(int value);
-    void OnChecked();
-    void OnZoomOut();
-    void OnZoomIn();
+    void h1ChangedEvent(int value);
+    void v1ChangedEvent(int value);
+    void h2ChangedEvent(int value);
+    void v2ChangedEvent(int value);
+    void checkedEvent();
+    void zoomOutEvent();
+    void zoomInEvent();
 
 private:
-    void Scale(double scale);
+    void scale(double scl);
 
 private:
     QPixmap pixmap1;
     QPixmap pixmap2;
     bool isFirst;
-    double scale;
+    double scl;
 
 private:
-    Ui::UniteDialog* pUi;
+    Ui::UniteDialog* ui;
 };
 
 #endif // UNITEDIALOG_H

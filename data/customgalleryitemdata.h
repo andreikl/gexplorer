@@ -2,6 +2,8 @@
 #define CUSTOMGALLERYITEMDATA_H
 
 #include <QtCore/QMetaType>
+#include <QtCore/QString>
+#include <QtCore/QList>
 
 class CustomGalleryData;
 class GalleryItemData;
@@ -9,6 +11,7 @@ class GalleryItemData;
 class CustomGalleryItemData
 {
     friend class CustomGalleryHandler;
+    friend class GalleryHandler;
 
 public:
     CustomGalleryItemData(CustomGalleryData& gallery, GalleryItemData& data);
@@ -16,8 +19,8 @@ public:
 
 public:
     const QList<CustomGalleryItemData*>& getChildren() const;
-    const CustomGalleryData* getCustomGallery() const;
-    const GalleryItemData& getItem() const;
+    CustomGalleryData* getCustomGallery() const;
+    GalleryItemData& getItem() const;
 
 public:
     const QString& getName() const;
@@ -30,6 +33,10 @@ public:
     void setCustomId(int value);
     void setAngle(int value);
     void setId(int value);
+
+public:
+    int width;
+    int height;
 
 public:
     CustomGalleryItemData* clone(CustomGalleryData& gallery) const;

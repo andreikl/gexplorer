@@ -19,8 +19,8 @@
   <property name="windowTitle">
    <string>Key Galleries</string>
   </property>
-  <widget class="QWidget" name="pwContent">
-   <layout class="QVBoxLayout" name="plContent">
+  <widget class="QWidget" name="wContent">
+   <layout class="QVBoxLayout" name="lContent">
     <property name="spacing">
      <number>0</number>
     </property>

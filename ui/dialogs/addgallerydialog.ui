@@ -13,17 +13,17 @@
   <property name="windowTitle">
    <string>Add Gallery</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="lvLayout">
    <item>
-    <widget class="QLabel" name="plSource">
+    <widget class="QLabel" name="lSource">
      <property name="text">
       <string>Source:</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="pwSource" native="true">
-     <layout class="QHBoxLayout" name="plSourceContent">
+    <widget class="QWidget" name="wSource" native="true">
+     <layout class="QHBoxLayout" name="lSourceContent">
       <property name="spacing">
        <number>4</number>
       </property>
@@ -31,12 +31,12 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QLineEdit" name="pleSource"/>
+       <widget class="QLineEdit" name="leSource"/>
       </item>
       <item>
-       <widget class="QToolButton" name="ptbBrowse">
+       <widget class="QToolButton" name="tbBrowse">
         <property name="icon">
-         <iconset resource="../../GalleryExplorer.qrc">
+         <iconset resource="../../galleryexplorer.qrc">
           <normaloff>:/res/resources/folder.png</normaloff>:/res/resources/folder.png</iconset>
         </property>
         <property name="autoRaise">
@@ -48,7 +48,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="pwFree" native="true">
+    <widget class="QWidget" name="wFree" native="true">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
@@ -58,8 +58,8 @@
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="pwButtons" native="true">
-     <layout class="QHBoxLayout" name="plButtons">
+    <widget class="QWidget" name="wButtons" native="true">
+     <layout class="QHBoxLayout" name="lButtons">
       <property name="spacing">
        <number>0</number>
       </property>
@@ -67,17 +67,17 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QPushButton" name="ppbAdd">
+       <widget class="QPushButton" name="pbAdd">
         <property name="text">
          <string>Add</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QWidget" name="pwBtnFree" native="true"/>
+       <widget class="QWidget" name="wBtnFree" native="true"/>
       </item>
       <item>
-       <widget class="QPushButton" name="ppbCancel">
+       <widget class="QPushButton" name="pbCancel">
         <property name="text">
          <string>Cancel</string>
         </property>
@@ -89,7 +89,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="../../GalleryExplorer.qrc"/>
+  <include location="../../galleryexplorer.qrc"/>
  </resources>
  <connections/>
 </ui>

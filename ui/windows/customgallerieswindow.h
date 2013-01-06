@@ -1,63 +1,74 @@
 #ifndef CUSTOMGALLERIESWINDOW_H
 #define CUSTOMGALLERIESWINDOW_H
 
-#include <QtGui/QDockWidget>
+#include <QtWidgets/QDockWidget>
 
 class CustomGalleriesTree;
 class CustomGalleryData;
 class TitleControl;
+class KeyData;
 
 QT_BEGIN_NAMESPACE
+class QComboBox;
 class QMenu;
 QT_END_NAMESPACE
 
-namespace Ui {
+namespace Ui
+{
     class CustomGalleriesWindow;
 }
 
-class CustomGalleriesWindow: public QDockWidget {
+class CustomGalleriesWindow: public QDockWidget
+{
     Q_OBJECT
 
 public:
-    explicit CustomGalleriesWindow(QWidget* pParent);
+    explicit CustomGalleriesWindow(QWidget* parent);
     virtual ~CustomGalleriesWindow();
 
 public:
     void selectGallery(CustomGalleryData* value);
 
 signals:
-    void OnGallery(CustomGalleryData* value);
+    void onGotoKey(KeyData*, CustomGalleryData*);
+    void onGallery(CustomGalleryData* value);
 
 protected:
     void contextMenuEvent(QContextMenuEvent* event);
 
 private slots:
-    void AddEvent();
-    void DelEvent();
-    void EditEvent();
-    void ExitEvent();
+    void filterChangedEvent(int value);
+    void activatedEvent();
+    void selectedEvent();
 
-private slots:
-    void ActivatedEvent();
-    void SelectedEvent();
+    void gotoKeyEvent(KeyData* key, CustomGalleryData* gallery);
+    void gotoEvent();
 
-private:
-    void CreateMenuAndActions();
-    void UpdateButtons();
-
-private:
-    QMenu* pmMenu;
-    QAction* paAdd;
-    QAction* paShow;
-    QAction* paEdit;
-    QAction* paDel;
+    void editEvent();
+    void exitEvent();
+    void addEvent();
+    void delEvent();
 
 private:
-    TitleControl* pTitle;
-    CustomGalleriesTree* ptwGalleries;
+    void createMenuAndActions(TitleControl* title);
+    void updateButtons();
 
 private:
-    Ui::CustomGalleriesWindow* pUi;
+    QMenu* mMenu;
+
+    QComboBox* cbFilter;
+    QMenu* mGotoMenu;
+
+    QAction* aShow;
+    QAction* aEdit;
+    QAction* aAdd;
+    QAction* aDel;
+
+private:
+    CustomGalleriesTree* twGalleries;
+
+private:
+    Ui::CustomGalleriesWindow* ui;
 };
 
 #endif // CUSTOMGALLERIESWINDOW_H

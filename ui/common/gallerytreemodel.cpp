@@ -16,14 +16,21 @@
 
 #include "ui/common/gallerytreemodel.h"
 
-GalleryTreeModel::GalleryTreeModel(Config::ItemTypeEnum type, QObject* pParent): QAbstractItemModel(pParent) {
+GalleryTreeModel::SearchResult::SearchResult(GalleryTreeItem* item, const QModelIndex& p, const QModelIndex& c): pindex(p), cindex(c)
+{
+    this->item = item;
+}
+
+GalleryTreeModel::GalleryTreeModel(Config::ItemTypeEnum type, QObject* parent): QAbstractItemModel(parent)
+{
     this->type = type;
 
     aceptedGalleryIcon = QPixmap(":/res/resources/gallery_accept.png").scaled(16, 16);
+    deletedGalleryIcon = QPixmap(":/res/resources/gallery_delete.png").scaled(16, 16);
     normalGalleryIcon = QPixmap(":/res/resources/gallery.png").scaled(16, 16);
     folderGalleryIcon = QPixmap(":/res/resources/folder.png").scaled(16, 16);
 
-    pRoot = new GalleryTreeItem(NULL, "", NULL);
+    root = new GalleryTreeItem(NULL, "", NULL);
 
     if(type == Config::ETypeGallery) {
         connect(GalleryHandler::getInstance(), SIGNAL(onAddGallery(GalleryData*)), SLOT(addGalleryEvent(GalleryData*)));
@@ -35,12 +42,14 @@ GalleryTreeModel::GalleryTreeModel(Config::ItemTypeEnum type, QObject* pParent):
     } else if(type == Config::ETypeCustomGallery) {
         connect(CustomGalleryHandler::getInstance(), SIGNAL(onAddCustomGallery(CustomGalleryData*)), SLOT(addCustomGalleryEvent(CustomGalleryData*)));
         connect(CustomGalleryHandler::getInstance(), SIGNAL(onDelCustomGallery(CustomGalleryData*)), SLOT(delCustomGalleryEvent(CustomGalleryData*)));
-        connect(CustomGalleryHandler::getInstance(), SIGNAL(onUpdCustomGallery(CustomGalleryData*)), SLOT(updCustomGalleryEvent(CustomGalleryData*)));
+        connect(CustomGalleryHandler::getInstance(), SIGNAL(onUpdCustomGallery(CustomGalleryData*, const char*)), SLOT(updCustomGalleryEvent(CustomGalleryData*, const char*)));
         foreach(CustomGalleryData* gallery, CustomGalleryHandler::getInstance()->getCustomGalleries()) {
             addCustomGalleryEvent(gallery);
         }
     } else if(type == Config::ETypeKey) {
+        connect(KeyHandler::getInstance(), SIGNAL(onAddToKey(KeyData*, CustomGalleryData*)), SLOT(addToKeyEvent(KeyData*, CustomGalleryData*)));
         connect(KeyHandler::getInstance(), SIGNAL(onAddKey(KeyData*)), SLOT(addKeyEvent(KeyData*)));
+        connect(KeyHandler::getInstance(), SIGNAL(onDelFromKey(KeyData*, CustomGalleryData*)), SLOT(delFromKeyEvent(KeyData*, CustomGalleryData*)));
         connect(KeyHandler::getInstance(), SIGNAL(onDelKey(KeyData*)), SLOT(delKeyEvent(KeyData*)));
         connect(KeyHandler::getInstance(), SIGNAL(onUpdKey(KeyData*)), SLOT(updKeyEvent(KeyData*)));
         foreach(KeyData* key, KeyHandler::getInstance()->getKeys()) {
@@ -49,112 +58,70 @@ GalleryTreeModel::GalleryTreeModel(Config::ItemTypeEnum type, QObject* pParent):
     }
 }
 
-GalleryTreeModel::~GalleryTreeModel() {
-    if(pRoot) {
-        delete pRoot;
-        pRoot = NULL;
+GalleryTreeModel::~GalleryTreeModel()
+{
+    if(root) {
+        delete root;
+        root = NULL;
     }
 }
 
-QModelIndex GalleryTreeModel::GetIndex(GalleryData* pGallery) {
-    return SearchRecursive(QModelIndex(), pRoot, pGallery);
+QModelIndex GalleryTreeModel::getIndex(KeyData* key, CustomGalleryData* gallery)
+{
+    return searchRecursive(QModelIndex(), root, key, gallery);
 }
 
-QModelIndex GalleryTreeModel::GetIndex(CustomGalleryData* pGallery) {
-    return SearchRecursive(QModelIndex(), pRoot, pGallery);
+QModelIndex GalleryTreeModel::getIndex(CustomGalleryData* gallery)
+{
+    return searchRecursive(QModelIndex(), root, gallery);
 }
 
-QModelIndex GalleryTreeModel::GetIndex(KeyData* pKey) {
-    return SearchRecursive(QModelIndex(), pRoot, pKey);
+QModelIndex GalleryTreeModel::getIndex(GalleryData* gallery)
+{
+    return searchRecursive(QModelIndex(), root, gallery);
 }
 
-QModelIndex GalleryTreeModel::GetIndex(KeyData* pKey, CustomGalleryData* pGallery) {
-    return SearchRecursive(QModelIndex(), pRoot, pKey, pGallery);
+QModelIndex GalleryTreeModel::getIndex(KeyData* key)
+{
+    return searchRecursive(QModelIndex(), root, key);
 }
 
-Qt::ItemFlags GalleryTreeModel::flags(const QModelIndex& index) const {
-    return QAbstractItemModel::flags(index) | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
-}
-
-QVariant GalleryTreeModel::headerData(int, Qt::Orientation, int) const {
+QVariant GalleryTreeModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    (void) section;
+    (void) orientation;
+    (void) role;
     return QVariant("None");
 }
 
-int GalleryTreeModel::columnCount(const QModelIndex&) const {
-    return 1;
-}
-
-int GalleryTreeModel::rowCount(const QModelIndex& parent) const {
-    /*if(parent.column() > 0) {
-        return 0;
-    }*/
-    if(!parent.isValid()) {
-        return pRoot->Childs().count();
-    } else {
-        return reinterpret_cast<GalleryTreeItem*>(parent.internalPointer())->Childs().count();
-    }
-}
-
-QModelIndex GalleryTreeModel::parent(const QModelIndex& index) const {
-    /*if(!index.isValid())
-        return QModelIndex();*/
-
-    GalleryTreeItem* pParent = reinterpret_cast<GalleryTreeItem*>(index.internalPointer())->Parent();
-
-    if(pParent == pRoot) {
-        return QModelIndex();
-    }
-
-    int row = 0;
-    if(pParent) {
-        row = pParent->Parent()->Childs().indexOf(pParent);
-    }
-
-    return createIndex(row, 0, pParent);
-}
-
-QModelIndex GalleryTreeModel::index(int row, int column, const QModelIndex& parent) const {
-    /*if(!hasIndex(row, column, parent)) {
-        return QModelIndex();
-    }*/
-
-    GalleryTreeItem* pItem;
-    if(!parent.isValid()) {
-        pItem = pRoot->Childs().value(row);
-    } else {
-        pItem = reinterpret_cast<GalleryTreeItem*>(parent.internalPointer())->Childs().value(row);
-    }
-
-    if(pItem) {
-        return createIndex(row, column, pItem);
-    }
-
-    return QModelIndex();
-}
-
-QVariant GalleryTreeModel::data(const QModelIndex& index, int role) const {
-    GalleryTreeItem* pItem = reinterpret_cast<GalleryTreeItem*>(index.internalPointer());
+QVariant GalleryTreeModel::data(const QModelIndex& index, int role) const
+{
+    GalleryTreeItem* item = reinterpret_cast<GalleryTreeItem*>(index.internalPointer());
 
     switch(role) {
     case Qt::DisplayRole:
-        return QVariant(pItem->Name());
+        return QVariant(item->getName());
 
     case Qt::DecorationRole:
         if(type == Config::ETypeGallery) {
-            if(pItem->Data()) {
-                GalleryData* pGallery = reinterpret_cast<GalleryData*>(pItem->Data());
-                if(pGallery->isAllContains()) {
-                    return QVariant(aceptedGalleryIcon);
+            if(item->getData()) {
+                GalleryData* gallery = reinterpret_cast<GalleryData*>(item->getData());
+                if(gallery->getType() == GalleryData::DeletedGallery) {
+                    return QVariant(deletedGalleryIcon);
                 } else {
-                    return QVariant(normalGalleryIcon);
+                    if(gallery->isAllContains()) {
+                        return QVariant(aceptedGalleryIcon);
+                    } else {
+                        return QVariant(normalGalleryIcon);
+                    }
                 }
             } else {
                 return QVariant(folderGalleryIcon);
             }
         } else if(type == Config::ETypeCustomGallery) {
-            if(pItem->Data()) {
-                CustomGalleryData* pGallery = reinterpret_cast<CustomGalleryData*>(pItem->Data());
-                if(pGallery->getKeys().count() > 0) {
+            if(item->getData()) {
+                CustomGalleryData* gallery = reinterpret_cast<CustomGalleryData*>(item->getData());
+                if(gallery->getKeys().count() > 0) {
                     return QVariant(aceptedGalleryIcon);
                 } else {
                     return QVariant(normalGalleryIcon);
@@ -163,7 +130,7 @@ QVariant GalleryTreeModel::data(const QModelIndex& index, int role) const {
                 return QVariant(folderGalleryIcon);
             }
         } else if(type == Config::ETypeKey) {
-            if(dynamic_cast<CustomGalleryData*>(pItem->Data())) {
+            if(dynamic_cast<CustomGalleryData*>(item->getData())) {
                 return QVariant(normalGalleryIcon);
             } else {
                 return QVariant(folderGalleryIcon);
@@ -172,27 +139,116 @@ QVariant GalleryTreeModel::data(const QModelIndex& index, int role) const {
         break;
 
     case Qt::UserRole:
-        return qVariantFromValue(pItem);
+        return qVariantFromValue(item);
     }
     return QVariant();
 }
 
+QModelIndex GalleryTreeModel::index(int row, int column, const QModelIndex& parent) const
+{
+    GalleryTreeItem* item;
+    if(!parent.isValid()) {
+        item = root->getChilds().value(row);
+    } else {
+        item = reinterpret_cast<GalleryTreeItem*>(parent.internalPointer())->getChilds().value(row);
+    }
+
+    if(item) {
+        return createIndex(row, column, item);
+    }
+
+    return QModelIndex();
+}
+
+int GalleryTreeModel::columnCount(const QModelIndex& parent) const
+{
+    (void)parent;
+    return 1;
+}
+
+int GalleryTreeModel::rowCount(const QModelIndex& parent) const
+{
+    /*if(parent.column() > 0) {
+        return 0;
+    }*/
+    if(!parent.isValid()) {
+        return root->getChilds().count();
+    } else {
+        return reinterpret_cast<GalleryTreeItem*>(parent.internalPointer())->getChilds().count();
+    }
+}
+
+Qt::ItemFlags GalleryTreeModel::flags(const QModelIndex& index) const
+{
+    return QAbstractItemModel::flags(index) | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
+}
+
+QModelIndex GalleryTreeModel::parent(const QModelIndex& index) const
+{
+    GalleryTreeItem* parent = reinterpret_cast<GalleryTreeItem*>(index.internalPointer())->getParent();
+
+    if(parent == root) {
+        return QModelIndex();
+    }
+
+    int row = 0;
+    if(parent) {
+        row = parent->getParent()->getChilds().indexOf(parent);
+    }
+
+    return createIndex(row, 0, parent);
+}
+
 void GalleryTreeModel::addCustomGalleryEvent(CustomGalleryData* gallery)
 {
-    QString galleryName = gallery->getName();
-    QStringList names = galleryName.split('/', QString::KeepEmptyParts);
+    bool filter = false;
+    if(Config::getInstance()->getCustomGalleryFilterType() == Config::ESortedFilter && gallery->getKeys().count() > 0) {
+        filter = true;
+    } else if(Config::getInstance()->getCustomGalleryFilterType() == Config::EUnsortedFilter && gallery->getKeys().count() <= 0) {
+        filter = true;
+    } else if(Config::getInstance()->getCustomGalleryFilterType() == Config::EAllFilter) {
+        filter = true;
+    }
 
-    AddDataRecursive(QModelIndex(), pRoot, gallery, galleryName, names, 0);
+    if(filter) {
+        QString galleryName = gallery->getName();
+        QStringList names = galleryName.split('/', QString::KeepEmptyParts);
+
+        addDataRecursive(QModelIndex(), root, gallery, galleryName, names, 0);
+    }
 }
 
 void GalleryTreeModel::addGalleryEvent(GalleryData* gallery)
 {
-    QString galleryName = gallery->getSource();
+    bool filter = false;
+    if(Config::getInstance()->getGalleryFilterType() == Config::ESortedFilter && gallery->isAllContains()) {
+        filter = true;
+    } else if(Config::getInstance()->getGalleryFilterType() == Config::EUnsortedFilter && !gallery->isAllContains()) {
+        filter = true;
+    } else if(Config::getInstance()->getGalleryFilterType() == Config::EAllFilter) {
+        filter = true;
+    }
+
+    if(filter) {
+        QString galleryName = gallery->getSource();
+        QStringList names = galleryName.split('/', QString::KeepEmptyParts);
+
+        addDataRecursive(QModelIndex(), root, gallery, galleryName, names, 0);
+
+        emit onAddGallery(gallery);
+    }
+}
+
+void GalleryTreeModel::addToKeyEvent(KeyData* key, CustomGalleryData* gallery) {
+    QString keyName = key->getName();
+    if(!keyName.endsWith('/')) {
+        keyName += '/';
+    }
+
+    QString galleryName = keyName + gallery->getName();
     QStringList names = galleryName.split('/', QString::KeepEmptyParts);
 
-    AddDataRecursive(QModelIndex(), pRoot, gallery, galleryName, names, 0);
-
-    emit OnAddGallery(this, gallery);
+    addDataRecursive(QModelIndex(), root, gallery, galleryName, names, 0);
 }
 
 void GalleryTreeModel::addKeyEvent(KeyData* key)
@@ -204,105 +260,121 @@ void GalleryTreeModel::addKeyEvent(KeyData* key)
     QStringList names = keyName.split('/', QString::KeepEmptyParts);
 
     QString galleryName = keyName;
-    AddDataRecursive(QModelIndex(), pRoot, key, galleryName, names, 0);
+    addDataRecursive(QModelIndex(), root, key, galleryName, names, 0);
 
     foreach(CustomGalleryData* gallery, key->getGalleries()) {
         galleryName = keyName + gallery->getName();
         names = galleryName.split('/', QString::KeepEmptyParts);
 
-        AddDataRecursive(QModelIndex(), pRoot, gallery, galleryName, names, 0);
+        addDataRecursive(QModelIndex(), root, gallery, galleryName, names, 0);
     }
 }
 
 void GalleryTreeModel::delCustomGalleryEvent(CustomGalleryData* gallery)
 {
-    SearchResult res = SearchRecursive(QModelIndex(), QModelIndex(), pRoot, gallery);
-    DelData(res);
+    SearchResult res = searchRecursive(QModelIndex(), QModelIndex(), root, gallery);
+    delData(res);
 }
 
 void GalleryTreeModel::delGalleryEvent(GalleryData* gallery)
 {
-    SearchResult res = SearchRecursive(QModelIndex(), QModelIndex(), pRoot, gallery);
-    DelData(res);
+    SearchResult res = searchRecursive(QModelIndex(), QModelIndex(), root, gallery);
+    delData(res);
+}
+
+void GalleryTreeModel::delFromKeyEvent(KeyData* key, CustomGalleryData* gallery)
+{
+    SearchResult resKey = searchRecursive(QModelIndex(), QModelIndex(), root, key);
+    SearchResult resGallery = searchRecursive(resKey.cindex, index(resKey.item->getParent()->getChilds().indexOf(resKey.item), 0, resKey.cindex), resKey.item, gallery);
+    delData(resGallery, resKey.item);
 }
 
 void GalleryTreeModel::delKeyEvent(KeyData* key)
 {
-    SearchResult res = SearchRecursive(QModelIndex(), QModelIndex(), pRoot, key);
-    DelData(res);
+    QList<KeyData*> keys;
+    SearchResult res = searchRecursive(QModelIndex(), QModelIndex(), root, key);
+    searchKeysRecursive(res.item, keys);
 
-    foreach(KeyData* k, res.keys) {
+    delData(res);
+    foreach(KeyData* k, keys) {
         addKeyEvent(k);
     }
 }
 
-void GalleryTreeModel::updCustomGalleryEvent(CustomGalleryData* gallery)
+void GalleryTreeModel::updCustomGalleryEvent(CustomGalleryData* gallery, const char* name)
 {
-    SearchResult res = SearchRecursive(QModelIndex(), QModelIndex(), pRoot, gallery);
-    DelData(res);
-
-    addCustomGalleryEvent(gallery);
+    SearchResult res = searchRecursive(QModelIndex(), QModelIndex(), root, gallery);
+    if(strcmp(name, "name") == 0) {
+        delData(res);
+        addCustomGalleryEvent(gallery);
+    } else {
+        updData(res);
+    }
 }
 
 void GalleryTreeModel::updGalleryEvent(GalleryData* gallery)
 {
-    SearchResult res = SearchRecursive(QModelIndex(), QModelIndex(), pRoot, gallery);
-    UpdData(res);
+    SearchResult res = searchRecursive(QModelIndex(), QModelIndex(), root, gallery);
+    updData(res);
 }
 
 void GalleryTreeModel::updKeyEvent(KeyData* key)
 {
-    SearchResult res = SearchRecursive(QModelIndex(), QModelIndex(), pRoot, key);
-    DelData(res);
+    QList<KeyData*> keys;
+    SearchResult res = searchRecursive(QModelIndex(), QModelIndex(), root, key);
+    searchKeysRecursive(res.item, keys);
+
+    delData(res);
 
     addKeyEvent(key);
-    foreach(KeyData* k, res.keys) {
+    foreach(KeyData* k, keys) {
         addKeyEvent(k);
     }
 }
 
-void GalleryTreeModel::AddDataRecursive(const QModelIndex& parent, GalleryTreeItem* pParent, BaseData* pData, QString& dataName, const QStringList& names, int n) {
+void GalleryTreeModel::addDataRecursive(const QModelIndex& parent, GalleryTreeItem* gparent, BaseData* data, QString& dataName, const QStringList& names, int n)
+{
     int pos = 0;
     bool isFind = false;
-    for(int i = 0; i < pParent->Childs().count(); i++) {
-        GalleryTreeItem* pItem = pParent->Childs().at(i);
-        QString name = pItem->Name();
+    for(int i = 0; i < gparent->getChilds().count(); i++) {
+        GalleryTreeItem* item = gparent->getChilds().at(i);
+        QString name = item->getName();
 
         if(name.length() > names[n].length() && name.startsWith(names[n], Qt::CaseInsensitive) && name.at(names[n].length()) == '/') {
             isFind = true;
 
             name = name.right(name.length() - names[n].length() - 1); n++;
-            while(name.length() > names[n].length() && name.startsWith(names[n], Qt::CaseInsensitive) && name.at(names[n].length()) == '/') {
+            while(n < names.length() && name.length() > names[n].length() && name.startsWith(names[n], Qt::CaseInsensitive) && name.at(names[n].length()) == '/') {
                 name = name.right(name.length() - names[n].length() - 1); n++;
             }
 
-            dataName = dataName.right(dataName.length() - (pItem->Name().length() - name.length()));
+            dataName = dataName.right(dataName.length() - (item->getName().length() - name.length()));
             if(name.isEmpty()) {
-                AddDataRecursive(index(i, 0, parent), pItem, pData, dataName, names, n);
+                addDataRecursive(index(i, 0, parent), item, data, dataName, names, n);
                 break;
             } else {
-                QString newName = pItem->Name().left(pItem->Name().length() - name.length());
-                GalleryTreeItem* pNewItem = new GalleryTreeItem(NULL, newName, pParent);
+                QString newName = item->getName().left(item->getName().length() - name.length());
+                GalleryTreeItem* newItem = new GalleryTreeItem(NULL, newName, gparent);
 
-                int j = pParent->Childs().indexOf(pItem);
+                int j = gparent->getChilds().indexOf(item);
                 beginRemoveRows(parent, j, j);
-                GalleryTreeItem* pNewItem1 = pParent->Childs().takeAt(j);
+                GalleryTreeItem* newItem1 = gparent->getChilds().takeAt(j);
                 endRemoveRows();
 
-                pNewItem1->Name(name);
-                pNewItem1->Parent(pNewItem);
-                GalleryTreeItem* pNewItem2 = new GalleryTreeItem(pData, dataName, pNewItem);
+                newItem1->setName(name);
+                newItem1->setParent(newItem);
+                GalleryTreeItem* newItem2 = new GalleryTreeItem(data, dataName, newItem);
 
-                if(pNewItem1->Name().compare(pNewItem2->Name(), Qt::CaseInsensitive) < 0) {
-                    pNewItem->Childs().append(pNewItem1);
-                    pNewItem->Childs().append(pNewItem2);
+                if(newItem1->getName().compare(newItem2->getName(), Qt::CaseInsensitive) < 0) {
+                    newItem->getChilds().append(newItem1);
+                    newItem->getChilds().append(newItem2);
                 } else {
-                    pNewItem->Childs().append(pNewItem2);
-                    pNewItem->Childs().append(pNewItem1);
+                    newItem->getChilds().append(newItem2);
+                    newItem->getChilds().append(newItem1);
                 }
 
                 beginInsertRows(parent, j, j);
-                pParent->Childs().insert(j, pNewItem);
+                gparent->getChilds().insert(j, newItem);
                 endInsertRows();
                 break;
             }
@@ -314,37 +386,35 @@ void GalleryTreeModel::AddDataRecursive(const QModelIndex& parent, GalleryTreeIt
     }
     if(!isFind) {
         beginInsertRows(parent, pos, pos);
-        pParent->Childs().insert(pos, new GalleryTreeItem(pData, dataName, pParent));
+        gparent->getChilds().insert(pos, new GalleryTreeItem(data, dataName, gparent));
         endInsertRows();
     }
 }
 
-GalleryTreeModel::SearchResult GalleryTreeModel::SearchRecursive(const QModelIndex& parent, const QModelIndex& child, GalleryTreeItem* pParent, BaseData* pData) {
-    QList<KeyData*> keys;
-    for(int i = 0; i < pParent->Childs().count(); i++) {
-        GalleryTreeItem* pItem = pParent->Childs().at(i);
-        if(pItem->Data() == pData) {
-            if(type == Config::ETypeKey) {
-                SearchKeysRecursive(pItem, keys);
-            }
-            SearchResult res = SearchResult(pItem, parent, child, keys);
+GalleryTreeModel::SearchResult GalleryTreeModel::searchRecursive(const QModelIndex& parent, const QModelIndex& child, GalleryTreeItem* gparent, BaseData* data)
+{
+    for(int i = 0; i < gparent->getChilds().count(); i++) {
+        GalleryTreeItem* item = gparent->getChilds().at(i);
+        if(item->getData() == data) {
+            SearchResult res = SearchResult(item, parent, child);
             return res;
         }
-        SearchResult r = SearchRecursive(child, index(i, 0, child), pItem, pData);
-        if(r.pItem) {
+        SearchResult r = searchRecursive(child, index(i, 0, child), item, data);
+        if(r.item) {
             return r;
         }
     }
-    return SearchResult(NULL, parent, parent, keys);
+    return SearchResult(NULL, parent, parent);
 }
 
-QModelIndex GalleryTreeModel::SearchRecursive(const QModelIndex& parent, GalleryTreeItem* pParent, BaseData* pKey, BaseData* pGallery) {
-    if(pParent->Data() == pKey) {
-        return SearchRecursive(parent, pParent, pGallery);
+QModelIndex GalleryTreeModel::searchRecursive(const QModelIndex& parent, GalleryTreeItem* gparent, BaseData* key, BaseData* gallery)
+{
+    if(gparent->getData() == key) {
+        return searchRecursive(parent, gparent, gallery);
     }
-    for(int i = 0; i < pParent->Childs().count(); i++) {
-        GalleryTreeItem* pItem = pParent->Childs().at(i);
-        const QModelIndex& ind = SearchRecursive(index(i, 0, parent), pItem, pKey, pGallery);
+    for(int i = 0; i < gparent->getChilds().count(); i++) {
+        GalleryTreeItem* item = gparent->getChilds().at(i);
+        const QModelIndex& ind = searchRecursive(index(i, 0, parent), item, key, gallery);
         if(ind.isValid()) {
             return ind;
         }
@@ -352,13 +422,14 @@ QModelIndex GalleryTreeModel::SearchRecursive(const QModelIndex& parent, Gallery
     return QModelIndex();
 }
 
-QModelIndex GalleryTreeModel::SearchRecursive(const QModelIndex& parent, GalleryTreeItem* pParent, BaseData* pData) {
-    if(pParent->Data() == pData) {
+QModelIndex GalleryTreeModel::searchRecursive(const QModelIndex& parent, GalleryTreeItem* gparent, BaseData* data)
+{
+    if(gparent->getData() == data) {
         return parent;
     }
-    for(int i = 0; i < pParent->Childs().count(); i++) {
-        GalleryTreeItem* pItem = pParent->Childs().at(i);
-        const QModelIndex& ind = SearchRecursive(index(i, 0, parent), pItem, pData);
+    for(int i = 0; i < gparent->getChilds().count(); i++) {
+        GalleryTreeItem* item = gparent->getChilds().at(i);
+        const QModelIndex& ind = searchRecursive(index(i, 0, parent), item, data);
         if(ind.isValid()) {
             return ind;
         }
@@ -366,62 +437,66 @@ QModelIndex GalleryTreeModel::SearchRecursive(const QModelIndex& parent, Gallery
     return QModelIndex();
 }
 
-void GalleryTreeModel::SearchKeysRecursive(GalleryTreeItem* pParent, QList<KeyData*>& keys) {
-    for(int i = 0; i < pParent->Childs().count(); i++) {
-        GalleryTreeItem* pItem = pParent->Childs().at(i);
-        if(pItem->Key()) {
-            keys.append(pItem->Key());
+void GalleryTreeModel::searchKeysRecursive(GalleryTreeItem* parent, QList<KeyData*>& keys)
+{
+    for(int i = 0; i < parent->getChilds().count(); i++) {
+        GalleryTreeItem* item = parent->getChilds().at(i);
+        if(item->getKey()) {
+            keys.append(item->getKey());
         }
-        SearchKeysRecursive(pItem, keys);
+        searchKeysRecursive(item, keys);
     }
 }
 
-void GalleryTreeModel::DelData(SearchResult& value) {
-    GalleryTreeItem* pParent = value.pItem->Parent();
-    if(pParent->Childs().count() == 2 &&  pParent->Parent()) {
-        int j = pParent->Parent()->Childs().indexOf(pParent);
+void GalleryTreeModel::delData(SearchResult& value, GalleryTreeItem* parent)
+{
+    GalleryTreeItem* p = value.item->getParent();
+    if(p->getChilds().count() == 2 &&  p->getParent() && p != parent) {
+        int j = p->getParent()->getChilds().indexOf(p);
         //qDebug() << reinterpret_cast<GalleryTreeItem*>(r.cindex.internalPointer())->Name();
 
         beginRemoveRows(value.pindex, j, j);
-        pParent->Parent()->Childs().takeAt(j);
+        p->getParent()->getChilds().takeAt(j);
         endRemoveRows();
 
-        delete pParent->Childs().takeAt(pParent->Childs().indexOf(value.pItem));
-        GalleryTreeItem* pp = pParent->Childs().takeAt(0);
+        delete p->getChilds().takeAt(p->getChilds().indexOf(value.item));
+        GalleryTreeItem* i = p->getChilds().takeAt(0);
 
-        pParent->Name(pParent->Name() + pp->Name());
-        pParent->Data(pp->Data());
-        while(pp->Childs().count()) {
-            GalleryTreeItem* pc = pp->Childs().takeAt(0);
-            pParent->Childs().append(pc);
-            pc->Parent(pParent);
+        p->setName(p->getName() + i->getName());
+        p->setData(i->getData());
+        while(i->getChilds().count()) {
+            GalleryTreeItem* ic = i->getChilds().takeAt(0);
+            p->getChilds().append(ic);
+            ic->setParent(p);
         }
-        delete pp;
+        delete i;
 
         beginInsertRows(value.pindex, j, j);
-        pParent->Parent()->Childs().insert(j, pParent);
+        p->getParent()->getChilds().insert(j, p);
         endInsertRows();
 
     } else {
-        int j = pParent->Childs().indexOf(value.pItem);
-        //qDebug() << reinterpret_cast<GalleryTreeItem*>(r.cindex.internalPointer())->Name();
+        int j = p->getChilds().indexOf(value.item);
+        //qDebug() << reinterpret_cast<GalleryTreeItem*>(value.cindex.internalPointer())->getName();
 
         beginRemoveRows(value.cindex, j, j);
-        delete pParent->Childs().takeAt(j);
+        delete p->getChilds().takeAt(j);
         endRemoveRows();
     }
 }
 
-void GalleryTreeModel::UpdData(SearchResult& value) {
-    GalleryTreeItem* pParent = value.pItem->Parent();
+void GalleryTreeModel::updData(SearchResult& value)
+{
+    emit dataChanged(value.cindex, value.cindex);
+    /*GalleryTreeItem* parent = value.item->getParent();
 
-    int j = pParent->Childs().indexOf(value.pItem);
+    int j = parent->getChilds().indexOf(value.item);
 
     beginRemoveRows(value.cindex, j, j);
-    GalleryTreeItem* pItem = pParent->Childs().takeAt(j);
+    GalleryTreeItem* item = parent->getChilds().takeAt(j);
     endRemoveRows();
 
     beginInsertRows(value.cindex, j, j);
-    pParent->Childs().insert(j, pItem);
-    endInsertRows();
+    parent->getChilds().insert(j, item);
+    endInsertRows();*/
 }
