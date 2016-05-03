@@ -1,6 +1,38 @@
+#include <QtWidgets/QAction>
+
+#include "data/customgalleryitemdata.h"
+#include "data/customgallerydata.h"
+#include "data/gallerydata.h"
+#include "data/keydata.h"
+
 #include "ui/common/galleryitemaction.h"
 
-GalleryItemAction::GalleryItemAction(QObject* parent): QAction(parent)
+GalleryItemAction::GalleryItemAction(QObject* parent, KeyData* key, CustomGalleryData* gallery): QAction(parent)
+{
+    init();
+
+    this->key = key;
+    this->customGallery = gallery;
+    connect(this, SIGNAL(triggered()), SLOT(triggerEvent()));
+}
+
+GalleryItemAction::GalleryItemAction(QObject* parent, CustomGalleryItemData* item): QAction(parent)
+{
+    init();
+
+    this->customGalleryItem = item;
+    connect(this, SIGNAL(triggered()), SLOT(triggerEvent()));
+}
+
+GalleryItemAction::GalleryItemAction(QObject* parent, GalleryItemData* item): QAction(parent)
+{
+    init();
+
+    this->galleryItem = item;
+    connect(this, SIGNAL(triggered()), SLOT(triggerEvent()));
+}
+
+GalleryItemAction::~GalleryItemAction()
 {
     customGalleryItem = NULL;
     galleryItem = NULL;
@@ -9,26 +41,7 @@ GalleryItemAction::GalleryItemAction(QObject* parent): QAction(parent)
     key = NULL;
 }
 
-GalleryItemAction::GalleryItemAction(QObject* parent, KeyData* key, CustomGalleryData* gallery): GalleryItemAction(parent)
-{
-    this->key = key;
-    this->customGallery = gallery;
-    connect(this, SIGNAL(triggered()), SLOT(triggerEvent()));
-}
-
-GalleryItemAction::GalleryItemAction(QObject* parent, CustomGalleryItemData* item): GalleryItemAction(parent)
-{
-    this->customGalleryItem = item;
-    connect(this, SIGNAL(triggered()), SLOT(triggerEvent()));
-}
-
-GalleryItemAction::GalleryItemAction(QObject* parent, GalleryItemData* item): GalleryItemAction(parent)
-{
-    this->galleryItem = item;
-    connect(this, SIGNAL(triggered()), SLOT(triggerEvent()));
-}
-
-GalleryItemAction::~GalleryItemAction()
+void GalleryItemAction::init()
 {
     customGalleryItem = NULL;
     galleryItem = NULL;

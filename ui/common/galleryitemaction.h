@@ -12,14 +12,14 @@ class GalleryItemAction: public QAction
 {
     Q_OBJECT
 
-private:
-    GalleryItemAction(QObject* parent);
-
 public:
     GalleryItemAction(QObject* parent, KeyData* key, CustomGalleryData* gallery);
     GalleryItemAction(QObject* parent, CustomGalleryItemData* item);
     GalleryItemAction(QObject* parent, GalleryItemData* item);
     virtual ~GalleryItemAction();
+
+private:
+    void init();
 
 public:
     CustomGalleryItemData* getCustomGalleryItem();

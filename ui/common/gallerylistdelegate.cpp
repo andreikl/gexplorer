@@ -12,7 +12,7 @@
 #include "data/customgalleryitemdata.h"
 #include "data/galleryitemdata.h"
 
-#include "ui/common/gallerylistitem.h"
+#include "ui/common/galleryitemmodel.h"
 
 #include "ui/common/gallerylistdelegate.h"
 
@@ -29,7 +29,7 @@ void GalleryListDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
 {
     QStyledItemDelegate::paint(painter, option, index);
 
-    GalleryListItem* item = qvariant_cast<GalleryListItem*>(index.data(Qt::UserRole));
+    GalleryItemModel* item = qvariant_cast<GalleryItemModel*>(index.data(Qt::UserRole));
     int x = option.rect.left() + IMAGE_MARGIN + (option.rect.width() - item->getPixmap().width()) / 2;
     int y = option.rect.top() + item->getPixmap().height() - IMAGE_MARGIN;
 
@@ -71,8 +71,8 @@ void GalleryListDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
 
 QSize GalleryListDelegate::sizeHint(const QStyleOptionViewItem&, const QModelIndex& index) const
 {
-    GalleryListItem* item = qvariant_cast<GalleryListItem*>(index.data(Qt::UserRole));
-    int w = list->width() - list->verticalScrollBar()->width() - 3;
+    GalleryItemModel* item = qvariant_cast<GalleryItemModel*>(index.data(Qt::UserRole));
+    int w = list->viewport()->width() - 1;
     int c = w / (item->getSize() + BORDER_SIZE);
     int width = (c < 1)? item->getSize() + BORDER_SIZE: w / c;
 

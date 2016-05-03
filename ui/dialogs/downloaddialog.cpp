@@ -3,13 +3,19 @@
 
 #include <QtWidgets/QMessageBox>
 
+#include "data/customgalleryitemdata.h"
 #include "data/galleryitemdata.h"
+#include "data/extensiondata.h"
 #include "data/gallerydata.h"
+
+#include "ui/common/galleryitemmodel.h"
+
+#include "ui/controls/customgallerycontrol.h"
 
 #include "ui/dialogs/downloaddialog.h"
 #include "ui_downloaddialog.h"
 
-DownloadDialog::DownloadDialog(QWidget* parent, GalleryData& data): QDialog(parent), ui(new Ui::DownloadDialog)
+DownloadDialog::DownloadDialog(QWidget* parent, GalleryData& data): QDialog(parent), selectedModel(NULL), ui(new Ui::DownloadDialog)
 {
     this->data = &data;
 
@@ -33,16 +39,46 @@ DownloadDialog::DownloadDialog(QWidget* parent, GalleryData& data): QDialog(pare
     connect(ui->pbCancel, SIGNAL(clicked()), SLOT(close()));
 
     itemSelectedEvent();
+
+    bool isSelected = false;
+    if(data.getItems().count() > 0 && data.getItems().at(0)->getExtension().getType() == ExtensionData::ExtensionVideo &&
+            CustomGalleryControl::getInstance() && CustomGalleryControl::getInstance()->getSelected()) {
+
+        CustomGalleryItemData* item = CustomGalleryControl::getInstance()->getSelected();
+        if(item->getItem().getExtension().getType() == ExtensionData::ExtensionVideo) {
+            selectedModel = new GalleryItemModel(*item, Config::ELargeSize);
+            selectedModel->loadPixmap(Config::ELargeSize);
+
+            ui->tbCustomGallery->setIcon(QIcon(selectedModel->getPixmap()));
+            ui->tbCustomGallery->setIconSize(QSize(Config::ELargeSize, Config::ELargeSize));
+
+            isSelected = true;
+        }
+    }
+    ui->wright->setVisible(isSelected);
+
 }
 
 DownloadDialog::~DownloadDialog()
 {
     delete ui;
+
+    if(selectedModel) {
+        delete selectedModel;
+    }
 }
 
 QString DownloadDialog::getPath()
 {
     return ui->lePath->text();
+}
+
+CustomGalleryItemData* DownloadDialog::getUniteItem()
+{
+    if(selectedModel && ui->tbCustomGallery->isChecked()) {
+        return reinterpret_cast<CustomGalleryItemData*>(selectedModel->getItem());
+    }
+    return NULL;
 }
 
 void DownloadDialog::itemChangedEvent(QListWidgetItem* item)

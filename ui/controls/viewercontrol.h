@@ -4,6 +4,7 @@
 #include <QtWidgets/QWidget>
 
 class GalleryListModel;
+class ViewerDialog;
 class VideoControl;
 
 class ViewerControl: public QWidget
@@ -11,7 +12,7 @@ class ViewerControl: public QWidget
     Q_OBJECT
 
 public:
-    ViewerControl(QWidget* parent, const GalleryListModel& m, int row);
+    ViewerControl(ViewerDialog* parent, const GalleryListModel& m, int row);
     ~ViewerControl();
 
 public:

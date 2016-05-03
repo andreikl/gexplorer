@@ -12,7 +12,7 @@
 #include "handlers/customgalleryhandler.h"
 #include "handlers/galleryhandler.h"
 
-#include "ui/common/gallerylistitem.h"
+#include "ui/common/galleryitemmodel.h"
 
 #include "ui/common/gallerylistmodel.h"
 
@@ -24,7 +24,7 @@ GalleryListModel::GalleryListModel(CustomGalleryData& gallery, int size, QObject
 
     foreach(CustomGalleryItemData* item, gallery.getItems()) {
         if(item->getCustomId() == 0) {
-            items.append(new GalleryListItem(*item, size));
+            items.append(new GalleryItemModel(*item, size));
         }
     }
 
@@ -47,7 +47,7 @@ GalleryListModel::GalleryListModel(GalleryData& gallery, int size, QObject* pare
     this->size = size;
 
     foreach(GalleryItemData* item, gallery.getItems()) {
-        items.append(new GalleryListItem(*item, size));
+        items.append(new GalleryItemModel(*item, size));
     }
 
     proxy = new QSortFilterProxyModel(parent);
@@ -89,13 +89,13 @@ QModelIndex GalleryListModel::getIndexByItem(CustomGalleryItemData* item)
             }
         }
     }
-    GalleryListItem* i = getItemByGalleryItem(item);
+    GalleryItemModel* i = getItemByGalleryItem(item);
     return proxy->mapFromSource(index(items.indexOf(i), 0));
 }
 
 QModelIndex GalleryListModel::getIndexByItem(GalleryItemData* item)
 {
-    GalleryListItem* i = getItemByGalleryItem(item);
+    GalleryItemModel* i = getItemByGalleryItem(item);
     return proxy->mapFromSource(index(items.indexOf(i), 0));
 }
 
@@ -167,7 +167,7 @@ void GalleryListModel::delGalleryItemEvent(GalleryItemData* item)
 {
     GalleryData* g = reinterpret_cast<GalleryData*>(gallery);
     if(g == item->getGallery()) {
-        GalleryListItem* i = getItemByGalleryItem(item);
+        GalleryItemModel* i = getItemByGalleryItem(item);
         if(i) {
             int index = items.indexOf(i);
 
@@ -183,7 +183,7 @@ void GalleryListModel::updCustomGalleryItemAngleEvent(CustomGalleryItemData* ite
 {
     CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(gallery);
     if(g == item->getCustomGallery()) {
-        GalleryListItem* i = getItemByGalleryItem(item);
+        GalleryItemModel* i = getItemByGalleryItem(item);
         i->loadPixmap(*item, size);
         const QModelIndex& in = getIndexByItem(item);
         emit dataChanged(in, in);
@@ -199,7 +199,7 @@ void GalleryListModel::updCustomGalleryItemEvent(CustomGalleryItemData* item)
 {
     CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(gallery);
     if(g == item->getCustomGallery()) {
-        GalleryListItem* i = getItemByGalleryItem(item);
+        GalleryItemModel* i = getItemByGalleryItem(item);
         if(i == NULL && item->getCustomId() == 0) {
             addCustomGalleryItemEvent(item);
             proxy->sort(0);
@@ -217,7 +217,7 @@ void GalleryListModel::addCustomGalleryItemEvent(CustomGalleryItemData* item)
     CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(gallery);
     if(g == item->getCustomGallery()) {
         beginInsertRows(QModelIndex(), items.count(), items.count());
-        items.append(new GalleryListItem(*item, size));
+        items.append(new GalleryItemModel(*item, size));
         endInsertRows();
     }
 }
@@ -226,7 +226,7 @@ void GalleryListModel::delCustomGalleryItemEvent(CustomGalleryItemData* item)
 {
     CustomGalleryData* g = reinterpret_cast<CustomGalleryData*>(gallery);
     if(g == item->getCustomGallery()) {
-        GalleryListItem* i = getItemByGalleryItem(item);
+        GalleryItemModel* i = getItemByGalleryItem(item);
         if(i) {
             int index = items.indexOf(i);
 
@@ -240,7 +240,7 @@ void GalleryListModel::delCustomGalleryItemEvent(CustomGalleryItemData* item)
 
 void GalleryListModel::loadEvent()
 {
-    foreach(GalleryListItem* item, items) {
+    foreach(GalleryItemModel* item, items) {
         if(!item->isLoad) {
             item->loadPixmap(size);
             const QModelIndex& in = proxy->mapFromSource(index(items.indexOf(item), 0));
@@ -279,9 +279,9 @@ void GalleryListModel::loadEvent()
     proxy->sort(0);*/
 }
 
-GalleryListItem* GalleryListModel::getItemByGalleryItem(CustomGalleryItemData* item)
+GalleryItemModel* GalleryListModel::getItemByGalleryItem(CustomGalleryItemData* item)
 {
-    foreach(GalleryListItem* i, items) {
+    foreach(GalleryItemModel* i, items) {
         if(reinterpret_cast<CustomGalleryItemData*>(i->getItem()) == item) {
             return i;
         }
@@ -289,9 +289,9 @@ GalleryListItem* GalleryListModel::getItemByGalleryItem(CustomGalleryItemData* i
     return NULL;
 }
 
-GalleryListItem* GalleryListModel::getItemByGalleryItem(GalleryItemData* item)
+GalleryItemModel* GalleryListModel::getItemByGalleryItem(GalleryItemData* item)
 {
-    foreach(GalleryListItem* i, items) {
+    foreach(GalleryItemModel* i, items) {
         if(reinterpret_cast<GalleryItemData*>(i->getItem()) == item) {
             return i;
         }

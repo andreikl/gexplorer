@@ -36,7 +36,9 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="aWorkspace"/>
     <addaction name="aExit"/>
+    <addaction name="aLoadModel"/>
    </widget>
    <widget class="QMenu" name="mWindow">
     <property name="title">
@@ -56,6 +58,16 @@
   <action name="aExit">
    <property name="text">
     <string>Exit</string>
+   </property>
+  </action>
+  <action name="aWorkspace">
+   <property name="text">
+    <string>Edit Workspace</string>
+   </property>
+  </action>
+  <action name="aLoadModel">
+   <property name="text">
+    <string>Load Model</string>
    </property>
   </action>
  </widget>

@@ -11,6 +11,8 @@
 #include "helpers/commonhelper.h"
 #include "helpers/gstreamerhelper.h"
 
+#include "ui/dialogs/editworkspacedialog.h"
+
 #include "ui/mainwindow.h"
 
 /*#include <QtCore/QThread>
@@ -50,6 +52,8 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
+    int res = 0;
+
     //MyThread* thr = new MyThread();
     //thr->start();
 
@@ -62,12 +66,27 @@ int main(int argc, char *argv[])
     Config::createInstance(QDir::currentPath());
     GStreamerHelper::createInstance();
 
-    int res = 0;
-    if(Application::createInstance(QDir::currentPath())) {
-        MainWindow w(NULL);
-        w.showMaximized();
+    QString workspace = Config::getInstance()->getWorkspacePath();
+    if(workspace.length() == 0 || !QDir(workspace).exists()) {
+        EditWorkspaceDialog* dialog = new EditWorkspaceDialog(NULL);
+        dialog->show();
+        dialog->exec();
 
-        res = a.exec();
+        if(dialog->result() == QDialog::Accepted) {
+            Config::getInstance()->setWorkspacePath(workspace = dialog->getWorkspace());
+        }
+        delete dialog;
+    }
+
+    if(workspace.length() > 0 && QDir(workspace).exists()) {
+        QDir::setCurrent(workspace);
+
+        if(Application::createInstance(workspace)) {
+            MainWindow w(NULL);
+            w.showMaximized();
+
+            res = a.exec();
+        }
     }
 
     if(Application::getInstance()) {

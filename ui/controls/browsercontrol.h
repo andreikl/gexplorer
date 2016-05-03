@@ -46,13 +46,13 @@ private slots:
     void addStreamGalleryEvent();
     void addItemsEvent();
 
+    void loadStartedEvent();
     void topHrefEvent();
     void openEvent();
-    void backEvent();
     void goEvent();
 
 private:
-    void searchSameUrls(QWebElement& element, const QString& path, const QString& ext, GalleryData* data);
+    void searchUrls(const QUrl& pageUrl, QWebElement& element, const QString& path, const QString& ext, GalleryData* data);
     void parseUrl(const QString& url, QString& path, QString& ext);
     bool isContainsFile(GalleryData* data, const QString& file);
 
@@ -79,8 +79,7 @@ private:
     QAction* aAddItem;
 
     QAction* aOpen;
-    QAction* aBack;
-    QAction* aGo;
+    //QAction* aGo;
     QMenu* mMenu;
 
 private:

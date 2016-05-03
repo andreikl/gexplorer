@@ -32,6 +32,9 @@ VideoControl::VideoControl(QWidget* parent): QWidget(parent)
     sSlider = new QSlider(this);
     sSlider->setOrientation(Qt::Horizontal);
     sSlider->setRange(0, 1000);
+    sSlider->setTracking(false);
+
+    connect(sSlider, SIGNAL(valueChanged(int)), SLOT(movedEvent(int)));
     connect(sSlider, SIGNAL(sliderMoved(int)), SLOT(movedEvent(int)));
 
     tbPlayer->addAction(aPlay);
@@ -54,6 +57,7 @@ VideoControl::~VideoControl()
 
 void VideoControl::startPlay(const QString& path, int w, int h)
 {
+    aPlay->setChecked(false);
     GStreamerHelper::getInstance()->startPlay(wVideoArea, wArea->width(), wArea->height(), path, w, h);
     if(!callTimer->isActive()) {
         callTimer->start();
@@ -66,7 +70,16 @@ void VideoControl::movedEvent(int pos)
     long int l = 0;
     GStreamerHelper::getInstance()->getPosAndLen(&p, &l);
     if(p != 0 && l != 0) {
-        GStreamerHelper::getInstance()->setPos(pos * l / (double)sSlider->maximum());
+
+        /*if(!aPlay->isChecked()) {
+            aPlay->setChecked(true);
+            GStreamerHelper::getInstance()->pause();
+        }*/
+
+        long newPos = pos * l / (double)sSlider->maximum();
+        if(p != newPos) {
+            GStreamerHelper::getInstance()->setPos(newPos);
+        }
     }
 }
 

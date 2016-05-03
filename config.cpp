@@ -10,6 +10,7 @@
 #define GALLERY_ICON_SIZE_TAG "GalleryIconSize"
 
 #define ACTIVE_DOWNLOAD_COUNT_TAG "ActiveDownloadCount"
+#define WORKSPACE_PATH_TAG "WorkspacePathTag"
 
 #define IS_CUSTOM_GALLERIES_WINDOW_TAG "IsCustomGalleriesWindow"
 #define IS_KEY_GALLERIES_WINDOW_TAG "IsKeyGalleriesWindow"
@@ -44,7 +45,8 @@ Config* Config::createInstance(const QString& path)
         tempInstance->customGalleryIconSize = (IconSizeEnum)tempInstance->handle->value(CUSTOM_GALLERY_ICON_SIZE_TAG, EMediumSize).toInt();
         tempInstance->galleryIconSize = (IconSizeEnum)tempInstance->handle->value(GALLERY_ICON_SIZE_TAG, EMediumSize).toInt();
 
-        tempInstance->activeDownloadCount = tempInstance->handle->value(ACTIVE_DOWNLOAD_COUNT_TAG, 3).toInt();
+        tempInstance->workspacePath = tempInstance->handle->value(WORKSPACE_PATH_TAG, "").toString();
+        tempInstance->activeDownloadCount = tempInstance->handle->value(ACTIVE_DOWNLOAD_COUNT_TAG, 5).toInt();
 
         tempInstance->isCustomGalleriesWindow = tempInstance->handle->value(IS_CUSTOM_GALLERIES_WINDOW_TAG, true).toBool();
         tempInstance->isKeyGalleriesWindow = tempInstance->handle->value(IS_KEY_GALLERIES_WINDOW_TAG, true).toBool();
@@ -98,6 +100,11 @@ Config::IconSizeEnum Config::getCustomGalleryIconSize() const
 Config::IconSizeEnum Config::getGalleryIconSize() const
 {
     return galleryIconSize;
+}
+
+const QString& Config::getWorkspacePath() const
+{
+    return workspacePath;
 }
 
 int Config::getActiveDownloadCount() const
@@ -158,6 +165,13 @@ void Config::setGalleryIconSize(IconSizeEnum size)
 
     handle->beginGroup(APPLICATION_NAME);
     handle->setValue(GALLERY_ICON_SIZE_TAG, galleryIconSize);
+    handle->endGroup();
+}
+
+void Config::setWorkspacePath(const QString& path)
+{
+    handle->beginGroup(APPLICATION_NAME);
+    handle->setValue(WORKSPACE_PATH_TAG, workspacePath = path);
     handle->endGroup();
 }
 

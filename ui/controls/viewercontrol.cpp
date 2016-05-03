@@ -14,9 +14,11 @@
 
 #include "ui/controls/videocontrol.h"
 
+#include "ui/dialogs/viewerdialog.h"
+
 #include "ui/controls/viewercontrol.h"
 
-ViewerControl::ViewerControl(QWidget* parent, const GalleryListModel& m, int row): QWidget(parent), model(m), currentRow(row), video(NULL)
+ViewerControl::ViewerControl(ViewerDialog* parent, const GalleryListModel& m, int row): QWidget(parent), model(m), currentRow(row), video(NULL)
 {
     setLayout(new QVBoxLayout(this));
 }
@@ -47,6 +49,9 @@ void ViewerControl::currentEvent()
     const QModelIndex& i = model.getCurrentItem(currentRow);
     if(model.getType() == Config::ETypeGallery) {
         GalleryItemData* item = qvariant_cast<GalleryItemData*>(i.data(Qt::UserRole + 1));
+        ViewerDialog* pDialog = reinterpret_cast<ViewerDialog*>(parent());
+        pDialog->setWindowTitle(item->getFileName());
+
         type = item->getExtension().getType();
         path = CommonHelper::getPath(*item);
         angle = CommonHelper::getAngle(*item);
@@ -54,6 +59,9 @@ void ViewerControl::currentEvent()
         h = (item->height != 0)? item->height: 600;
     } else {
         CustomGalleryItemData* item = qvariant_cast<CustomGalleryItemData*>(i.data(Qt::UserRole + 1));
+        ViewerDialog* pDialog = reinterpret_cast<ViewerDialog*>(parent());
+        pDialog->setWindowTitle(item->getItem().getFileName());
+
         type = item->getItem().getExtension().getType();
         path = CommonHelper::getPath(*item);
         angle = CommonHelper::getAngle(*item);

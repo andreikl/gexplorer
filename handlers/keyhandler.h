@@ -4,7 +4,6 @@
 #include <QtCore/QObject>
 
 class CustomGalleryData;
-class Application;
 class KeyData;
 
 class KeyHandler: public QObject
@@ -37,11 +36,11 @@ public:
     KeyData* updKey(KeyData& value);
 
 signals:
-    void onUpdKey(KeyData* pValue);
-    void onAddToKey(KeyData* pValue, CustomGalleryData* gallery);
-    void onAddKey(KeyData* pValue);
-    void onDelFromKey(KeyData* pValue, CustomGalleryData* gallery);
-    void onDelKey(KeyData* pValue);
+    void onUpdKey(KeyData* value);
+    void onAddToKey(KeyData* value, CustomGalleryData* gallery);
+    void onAddKey(KeyData* value);
+    void onDelFromKey(KeyData* value, CustomGalleryData* gallery);
+    void onDelKey(KeyData* value);
 
 private:
     KeyData* getKeyById(int id) const;

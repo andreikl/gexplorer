@@ -129,12 +129,6 @@ protected:
                 items.append(item);
 
             }
-            /*const QModelIndexList& indexes = selectedIndexes();
-            foreach(const QModelIndex& index, indexes) {
-                CustomGalleryItemData* item = qVariantValue<CustomGalleryItemData*>(index.data(Qt::UserRole + 1));
-                items.append(item);
-            }*/
-            //qSort(items.begin(), items.end(), customGalleryItemDataComparer);
         } else  if(type == Config::ETypeGalleryItem) {
             QList<CustomGalleryItemId> ids;
             while(!stream.atEnd()) {
@@ -146,11 +140,6 @@ protected:
                 ii.gid = gid;
                 ii.id = id;
                 ids.append(ii);
-
-                /*CustomGalleryItemData* customItem = CustomGalleryHandler::getInstance()->addToCustomGallery(*gallery, gid, id);
-                if(customItem != NULL) {
-                    items.append(customItem);
-                }*/
             }
             items = CustomGalleryHandler::getInstance()->addToCustomGallery(*gallery, ids);
         }
@@ -165,30 +154,47 @@ protected:
             }
             QList<CustomGalleryItemName> ins;
             int n = 1;
-            for(int i = 0; i < row; i++) {
-                QString name = QString("%1").arg(n++, 3, 10, QChar('0'));
+            int r = row;
+            for(int i = 0; i < r; i++) {
                 const QModelIndex& index = model->getProxy()->index(i, 0);
                 CustomGalleryItemData* item = qvariant_cast<CustomGalleryItemData*>(index.data(Qt::UserRole + 1));
+                if(!item) {
+                    break;
+                }
+                if(items.contains(item)) {
+                    if(type == Config::ETypeGalleryItem) {
+                        r++;
+                    }
+                    continue;
+                }
+
+                QString name = QString("%1").arg(n++, 3, 10, QChar('0'));
                 if(item->getName() != name) {
                     CustomGalleryItemName in;
                     in.item = item;
                     in.name = name;
                     ins.append(in);
                 }
-                //CustomGalleryHandler::getInstance()->updCustomGalleryItemName(*item, name);
             }
             n = row + items.count() + 1;
-            for(int i = row; i < model->rowCount(); i++) {
-                QString name = QString("%1").arg(n++, 3, 10, QChar('0'));
+            for(int i = r; i < model->rowCount(); i++) {
                 const QModelIndex& index = model->getProxy()->index(i, 0);
                 CustomGalleryItemData* item = qvariant_cast<CustomGalleryItemData*>(index.data(Qt::UserRole + 1));
+                if(!item) {
+                    break;
+                }
+                if(items.contains(item)) {
+                    r++;
+                    continue;
+                }
+
+                QString name = QString("%1").arg(n++, 3, 10, QChar('0'));
                 if(item->getName() != name) {
                     CustomGalleryItemName in;
                     in.item = item;
                     in.name = name;
                     ins.append(in);
                 }
-                //CustomGalleryHandler::getInstance()->updCustomGalleryItemName(*item, name);
             }
             n = row + 1;
             for(int i = 0; i < items.count(); i++) {
@@ -199,7 +205,6 @@ protected:
                     in.name = name;
                     ins.append(in);
                 }
-                //CustomGalleryHandler::getInstance()->updCustomGalleryItemName(*items[i], name);
             }
             CustomGalleryHandler::getInstance()->updCustomGalleryItemNames(ins);
             model->getProxy()->sort(0);
@@ -241,7 +246,22 @@ private:
     GalleryListDelegate* delegate;
 };
 
-CustomGalleryControl::CustomGalleryControl(QWidget* parent): QWidget(parent), data(NULL), model(NULL), ui(new Ui::CustomGalleryControl)
+CustomGalleryControl* CustomGalleryControl::control = NULL;
+
+CustomGalleryControl* CustomGalleryControl::createInstance(QWidget* parent)
+{
+    if(!control) {
+        control = new CustomGalleryControl(parent);
+    }
+    return control;
+}
+
+CustomGalleryControl* CustomGalleryControl::getInstance()
+{
+    return control;
+}
+
+CustomGalleryControl::CustomGalleryControl(QWidget* parent): QWidget(parent), selectedItem(NULL), data(NULL), model(NULL), ui(new Ui::CustomGalleryControl)
 {
     ui->setupUi(this);
 
@@ -284,6 +304,11 @@ CustomGalleryControl::~CustomGalleryControl()
     }
 
     delete ui;
+}
+
+CustomGalleryItemData* CustomGalleryControl::getSelected()
+{
+    return selectedItem;
 }
 
 CustomGalleryData* CustomGalleryControl::getGallery()
@@ -554,7 +579,7 @@ void CustomGalleryControl::create1MenuAndActions()
     cbSize->addItem("Large");
     cbSize->addItem("Medium");
     cbSize->addItem("Small");
-    switch(Config::getInstance()->getGalleryIconSize()) {
+    switch(Config::getInstance()->getCustomGalleryIconSize()) {
     case Config::ELargeSize:
         cbSize->setCurrentIndex(0);
         break;
@@ -665,46 +690,66 @@ void CustomGalleryControl::create2MenuAndActions()
 void CustomGalleryControl::updateButtons()
 {
     QList<CustomGalleryItemData*> items1;
-    if(list1->selectionModel() && list1->selectionModel()->selectedRows().count() == 1) {
+    if(list1->selectionModel() && list1->selectionModel()->selectedRows().count() > 0) {
+        const QModelIndexList& sr = list1->selectionModel()->selectedRows();
+        foreach(const QModelIndex& index, sr) {
+            items1.append(qvariant_cast<CustomGalleryItemData*>(index.data(Qt::UserRole + 1)));
+        }
+    }
+
+    if(items1.count() == 1) {
         aShow1->setEnabled(true);
         aLeft1->setEnabled(true);
         aRight1->setEnabled(true);
+
+        mGotoMenu->clear();
+        mGotoMenu->setEnabled(true);
+        QAction* action = mGotoMenu->addAction(items1.at(0)->getItem().getGallery()->getSource() + "/" + items1.at(0)->getItem().getFileName());
+        connect(action, SIGNAL(triggered()), this, SLOT(gotoEvent()));
+
+        QList<CustomGalleryItemData*> children;
+        CommonHelper::getChildren(*items1.at(0), children);
+
+        foreach(CustomGalleryItemData* i, children) {
+            GalleryItemAction* action = new GalleryItemAction(this, &i->getItem());
+            action->setText(i->getItem().getGallery()->getSource() + "/" + i->getItem().getFileName());
+            connect(action, SIGNAL(onActivateGallery(GalleryItemData*)), this, SLOT(gotoChildrenEvent(GalleryItemData*)));
+            mGotoMenu->addAction(action);
+        }
     } else {
         aShow1->setEnabled(false);
         aLeft1->setEnabled(false);
         aRight1->setEnabled(false);
+
+        mGotoMenu->setEnabled(false);
     }
 
-    if(list1->selectionModel() && list1->selectionModel()->selectedRows().count() > 0) {
-        const QModelIndexList& sr = list1->selectionModel()->selectedRows();
-
-        foreach(const QModelIndex& index, sr) {
-            items1.append(qvariant_cast<CustomGalleryItemData*>(index.data(Qt::UserRole + 1)));
-        }
-
+    if(items1.count() > 0) {
+        selectedItem = items1[0];
         aDel->setEnabled(true);
-
-        if(sr.count() == 1) {
-            mGotoMenu->clear();
-            mGotoMenu->setEnabled(true);
-            QAction* action = mGotoMenu->addAction(items1.at(0)->getItem().getGallery()->getSource() + "/" + items1.at(0)->getItem().getFileName());
-            connect(action, SIGNAL(triggered()), this, SLOT(gotoEvent()));
-
-            QList<CustomGalleryItemData*> children;
-            CommonHelper::getChildren(*items1.at(0), children);
-
-            foreach(CustomGalleryItemData* i, children) {
-                GalleryItemAction* action = new GalleryItemAction(this, &i->getItem());
-                action->setText(i->getItem().getGallery()->getSource() + "/" + i->getItem().getFileName());
-                connect(action, SIGNAL(onActivateGallery(GalleryItemData*)), this, SLOT(gotoChildrenEvent(GalleryItemData*)));
-                mGotoMenu->addAction(action);
-            }
-        } else {
-            mGotoMenu->setEnabled(false);
-        }
     } else {
+        selectedItem = NULL;
         aDel->setEnabled(false);
-        mGotoMenu->setEnabled(false);
+    }
+
+    QList<CustomGalleryItemData*> items2;
+    if(list2) {
+        if(list2->selectionModel() && list2->selectionModel()->selectedRows().count() > 0) {
+            const QModelIndexList& sr = list2->selectionModel()->selectedRows();
+            foreach(const QModelIndex& index, sr) {
+                items2.append(qvariant_cast<CustomGalleryItemData*>(index.data(Qt::UserRole + 1)));
+            }
+        }
+
+        if(items2.count() == 1) {
+            aShow2->setEnabled(true);
+            aLeft2->setEnabled(true);
+            aRight2->setEnabled(true);
+        } else {
+            aShow2->setEnabled(false);
+            aLeft2->setEnabled(false);
+            aRight2->setEnabled(false);
+        }
     }
 
     bool isSplit = false;
@@ -724,37 +769,18 @@ void CustomGalleryControl::updateButtons()
     }
 
     bool isCanUnite = false;
-    if(list2 && list2->selectionModel()) {
-        if(list2->selectionModel()->selectedRows().count() == 1) {
-            aShow2->setEnabled(true);
-            aLeft2->setEnabled(true);
-            aRight2->setEnabled(true);
-        } else {
-            aShow2->setEnabled(false);
-            aLeft2->setEnabled(false);
-            aRight2->setEnabled(false);
-        }
-
-        QList<CustomGalleryItemData*> items2;
-        if(list2->selectionModel()->selectedRows().count() > 0) {
-            isCanUnite = true;
-            const QModelIndexList& sr = list2->selectionModel()->selectedRows();
-
-            foreach(const QModelIndex& index, sr) {
-                CustomGalleryItemData* i = qvariant_cast<CustomGalleryItemData*>(index.data(Qt::UserRole + 1));
-                if(items1.contains(i)) {
-                    isCanUnite = false;
-                    break;
-                }
-                items2.append(i);
-            }
-        }
-
-        if(isCanUnite) {
-            if(items1.count() != items2.count()) {
+    if(items2.count() > 0) {
+        isCanUnite = true;
+        foreach(CustomGalleryItemData* i, items2) {
+            if(items1.contains(i)) {
                 isCanUnite = false;
+                break;
             }
         }
+    }
+
+    if(isCanUnite && items1.count() != items2.count()) {
+        isCanUnite = false;
     }
 
     if(isCanUnite) {

@@ -1,10 +1,17 @@
 #include <QtCore/QTimer>
 #include <QtCore/QDebug>
+#include <QtCore/QDir>
 
+#include <QtWidgets/QFileDialog>
 #include <QtWidgets/QSplitter>
+
+//#include <Qt3D/QGLAbstractScene>
 
 #include "application.h"
 #include "config.h"
+
+//#include "viewer3d.h"
+//#include "window3d.h"
 
 #include "data/customgalleryitemdata.h"
 #include "data/galleryitemdata.h"
@@ -23,84 +30,31 @@
 #include "ui/windows/gallerieswindow.h"
 #include "ui/windows/downloadswindow.h"
 
+#include "ui/dialogs/editworkspacedialog.h"
+
 #include "ui/mainwindow.h"
 #include "ui_mainwindow.h"
 
 QStatusBar* bar = NULL;
 
-MainWindow::MainWindow(QWidget* pParent): QMainWindow(pParent), customGallery(NULL), gallery(NULL), browser(NULL), ui(new Ui::MainWindow)
+MainWindow::MainWindow(QWidget* pParent): QMainWindow(pParent), dwGalleries(NULL), dwCustomGalleries(NULL), dwKeys(NULL), dwDownloads(NULL),
+    gallery(NULL), browser(NULL), isCustomGallery(false), isGallery(false), isBrowser(false), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
 
-    dwGalleries = new GalleriesWindow(this);
-    //dwGalleries->setFloating(true);
-    addDockWidget(Qt::RightDockWidgetArea, dwGalleries);
-
-    dwCustomGalleries = new CustomGalleriesWindow(this);
-    //dwCustomGalleries->setFloating(true);
-    addDockWidget(Qt::RightDockWidgetArea, dwCustomGalleries);
-
-    dwKeys = new KeyGalleriesWindow(this);
-    //dwKeys->setFloating(true);
-    addDockWidget(Qt::LeftDockWidgetArea, dwKeys);
-
-    dwDownloads = new DownloadsWindow(this);
-    //dwDownloads->setFloating(true);
-    addDockWidget(Qt::LeftDockWidgetArea, dwDownloads);
+    connect(ui->aWorkspace, SIGNAL(triggered()), this, SLOT(editWorkspaceEvent()));
+    connect(ui->aLoadModel, SIGNAL(triggered()), this, SLOT(loadModelEvent()));
 
     bar = ui->sbStatusBar;
 
     splitter = new QSplitter(Qt::Vertical, this);
     ui->lLayout->addWidget(splitter);
 
-    isCustomGallery = false;
-    isGallery = false;
-    isBrowser = false;
-
-    ui->mViews->addAction(dwKeys->toggleViewAction());
-    connect(dwKeys->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(keyGalleriesWindowEvent(bool)));
-    ui->mViews->addAction(dwCustomGalleries->toggleViewAction());
-    connect(dwCustomGalleries->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(customGalleriesWindowEvent(bool)));
-    ui->mViews->addAction(dwGalleries->toggleViewAction());
-    connect(dwGalleries->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(galleriesWindowEvent(bool)));
-    ui->mViews->addAction(dwDownloads->toggleViewAction());
-    connect(dwDownloads->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(downloadsWindowEvent(bool)));
-
-    if(Config::getInstance()->getIsKeyGalleriesWindow()) {
-        dwKeys->setVisible(true);
-    } else {
-        dwKeys->setVisible(false);
-    }
-    if(Config::getInstance()->getIsCustomGalleriesWindow()) {
-        dwCustomGalleries->setVisible(true);
-    } else {
-        dwCustomGalleries->setVisible(false);
-    }
-    if(Config::getInstance()->getIsGalleriesWindow()) {
-        dwGalleries->setVisible(true);
-    } else {
-        dwGalleries->setVisible(false);
-    }
-    if(Config::getInstance()->getIsDownloadsWindow()) {
-        dwDownloads->setVisible(true);
-    } else {
-        dwDownloads->setVisible(false);
-    }
-
     connect(CustomGalleryHandler::getInstance(), SIGNAL(onDelCustomGallery(CustomGalleryData*)), SLOT(delCustomGalleryEvent(CustomGalleryData*)));
     connect(GalleryHandler::getInstance(), SIGNAL(onDelGallery(GalleryData*)), SLOT(delGalleryEvent(GalleryData*)));
-
-    connect(dwCustomGalleries, SIGNAL(onGallery(CustomGalleryData*)), SLOT(customGalleryEvent(CustomGalleryData*)));
-    connect(dwCustomGalleries, SIGNAL(onGotoKey(KeyData*, CustomGalleryData*)), SLOT(gotoKeyEvent(KeyData*, CustomGalleryData*)));
-
-    connect(dwGalleries, SIGNAL(onBrowse(GalleryData*)), SLOT(browseGalleryEvent(GalleryData*)));
-    connect(dwGalleries, SIGNAL(onAdd(const QString&)), SLOT(addGalleryEvent(const QString&)));
-    connect(dwGalleries, SIGNAL(onGallery(GalleryData*)), SLOT(galleryEvent(GalleryData*)));
-
-    connect(dwKeys, SIGNAL(onGotoGallery(CustomGalleryData*)), SLOT(gotoCustomGalleryEvent(CustomGalleryData*)));
-    connect(dwKeys, SIGNAL(onGallery(CustomGalleryData*)), SLOT(customGalleryEvent(CustomGalleryData*)));
-
     connect(ui->aExit, SIGNAL(triggered()), SLOT(close()));
+
+    loadWindows();
 
     //"http://www.gettyimagesgallery.com/Collections/Archive/Patrick-Lichfield.aspx"
     //"http://wallpaper.metalship.org/en/pictures/Bands59"
@@ -120,12 +74,53 @@ MainWindow::~MainWindow()
         delete gallery;
         gallery = NULL;
     }
-    if(customGallery) {
-        customGallery->close();
-        delete customGallery;
-        customGallery = NULL;
+    if(CustomGalleryControl::getInstance()) {
+        CustomGalleryControl::getInstance()->close();
+        delete CustomGalleryControl::getInstance();
     }
     delete ui;
+}
+
+void MainWindow::editWorkspaceEvent()
+{
+    QString workspace;
+    EditWorkspaceDialog* dialog = new EditWorkspaceDialog(NULL);
+    dialog->show();
+    dialog->exec();
+
+    if(dialog->result() == QDialog::Accepted) {
+        workspace = dialog->getWorkspace();
+    }
+    delete dialog;
+
+    if(workspace.length() > 0 && QDir(workspace).exists()) {
+        unloadWindows();
+
+        if(Application::getInstance()) {
+            delete Application::getInstance();
+        }
+
+        Config::getInstance()->setWorkspacePath(workspace);
+        QDir::setCurrent(workspace);
+
+        Application::createInstance(workspace);
+
+        loadWindows();
+    }
+}
+
+void MainWindow::loadModelEvent()
+{
+    //Window3D* window3D = new Window3D(new Viewer3D(), this);
+    //splitter->addWidget(window3D);
+
+    /*QString filter = QString("Models (%1)").arg(QGLAbstractScene::supportedFormats().join(" "));
+    QString fileName = QFileDialog::getOpenFileName(NULL, QString("Open File"), QDir::currentPath(), filter);
+    qDebug() << fileName;
+
+    Viewer3D* viewer = new Viewer3D(fileName);
+    viewer->resize(800, 600);
+    viewer->show();*/
 }
 
 void MainWindow::gotoCustomGalleryItemEvent(CustomGalleryItemData* item)
@@ -135,10 +130,10 @@ void MainWindow::gotoCustomGalleryItemEvent(CustomGalleryItemData* item)
 
     dwCustomGalleries->selectGallery(item->getCustomGallery());
 
-    if(!isCustomGallery || customGallery->getGallery() != item->getCustomGallery()) {
+    if(!isCustomGallery || CustomGalleryControl::getInstance()->getGallery() != item->getCustomGallery()) {
         customGalleryEvent(item->getCustomGallery());
     }
-    customGallery->selectItem(item);
+    CustomGalleryControl::getInstance()->selectItem(item);
 }
 
 void MainWindow::gotoCustomGalleryEvent(CustomGalleryData* value)
@@ -172,16 +167,16 @@ void MainWindow::gotoKeyEvent(KeyData* key, CustomGalleryData* gallery)
 
 void MainWindow::customGalleryEvent(CustomGalleryData* value)
 {
-    if(customGallery == NULL) {
-        customGallery = new CustomGalleryControl(this);
-        connect(customGallery->getTitle()->getCloseAction(), SIGNAL(triggered()), SLOT(exitCustomGalleryEvent()));
-        connect(customGallery, SIGNAL(onGotoItem(GalleryItemData*)), SLOT(gotoGalleryItemEvent(GalleryItemData*)));
+    if(CustomGalleryControl::getInstance() == NULL) {
+        CustomGalleryControl::createInstance(this);
+        connect(CustomGalleryControl::getInstance()->getTitle()->getCloseAction(), SIGNAL(triggered()), SLOT(exitCustomGalleryEvent()));
+        connect(CustomGalleryControl::getInstance(), SIGNAL(onGotoItem(GalleryItemData*)), SLOT(gotoGalleryItemEvent(GalleryItemData*)));
     }
     if(!isCustomGallery) {
-        splitter->addWidget(customGallery);
+        splitter->addWidget(CustomGalleryControl::getInstance());
         isCustomGallery = true;
     }
-    customGallery->setGallery(value);
+    CustomGalleryControl::getInstance()->setGallery(value);
 }
 
 void MainWindow::browseGalleryEvent(GalleryData* value)
@@ -224,12 +219,12 @@ void MainWindow::addGalleryEvent(const QString& source)
 
 void MainWindow::delCustomGalleryEvent(CustomGalleryData* gallery)
 {
-    if(this->customGallery && this->customGallery->getGallery() == gallery) {
+    if(CustomGalleryControl::getInstance() && CustomGalleryControl::getInstance()->getGallery() == gallery) {
         if(isCustomGallery) {
-            this->customGallery->setParent(NULL);
+            CustomGalleryControl::getInstance()->setParent(NULL);
             isCustomGallery = false;
         }
-        this->customGallery->setGallery(NULL);
+        CustomGalleryControl::getInstance()->setGallery(NULL);
     }
 }
 
@@ -242,9 +237,9 @@ void MainWindow::delGalleryEvent(GalleryData* gallery)
         }
         this->gallery->setGallery(NULL);
     }
-    if(this->customGallery) {
-        this->customGallery->setGallery(this->customGallery->getGallery());
-    }
+    /*if(CustomGalleryControl::getInstance()) {
+        CustomGalleryControl::getInstance()->setGallery(CustomGalleryControl::getInstance()->getGallery());
+    }*/
 }
 
 void MainWindow::customGalleriesWindowEvent(bool value)
@@ -269,7 +264,7 @@ void MainWindow::downloadsWindowEvent(bool value)
 
 void MainWindow::exitCustomGalleryEvent()
 {
-    customGallery->setParent(NULL);
+    CustomGalleryControl::getInstance()->setParent(NULL);
     isCustomGallery = false;
 }
 
@@ -302,5 +297,128 @@ void MainWindow::showBrowser()
             splitter->addWidget(browser);
         }
         isBrowser = true;
+    }
+}
+
+void MainWindow::unloadWindows()
+{
+    ui->mViews->clear();
+
+    if(CustomGalleryControl::getInstance()) {
+        if(isCustomGallery) {
+            CustomGalleryControl::getInstance()->setParent(NULL);
+            isCustomGallery = false;
+        }
+        CustomGalleryControl::getInstance()->setGallery(NULL);
+    }
+
+    if(this->gallery) {
+        if(isGallery) {
+            this->gallery->setParent(NULL);
+            isGallery = false;
+        }
+        this->gallery->setGallery(NULL);
+    }
+
+    if(this->browser) {
+        if(isBrowser) {
+            this->browser->setParent(NULL);
+            isBrowser = false;
+        }
+        this->browser->goTo(NULL);
+    }
+
+    if(dwDownloads) {
+        delete dwDownloads;
+        dwDownloads = NULL;
+    }
+
+    if(dwKeys) {
+        delete dwKeys;
+        dwKeys = NULL;
+    }
+
+    if(dwCustomGalleries) {
+        delete dwCustomGalleries;
+        dwCustomGalleries = NULL;
+    }
+
+    if(dwGalleries) {
+        delete dwGalleries;
+        dwGalleries = NULL;
+    }
+}
+
+void MainWindow::loadWindows()
+{
+    if(!dwGalleries)
+    {
+        dwGalleries = new GalleriesWindow(this);
+        //dwGalleries->setFloating(true);
+        addDockWidget(Qt::RightDockWidgetArea, dwGalleries);
+
+        ui->mViews->addAction(dwGalleries->toggleViewAction());
+        if(Config::getInstance()->getIsGalleriesWindow()) {
+            dwGalleries->setVisible(true);
+        } else {
+            dwGalleries->setVisible(false);
+        }
+
+        connect(dwGalleries->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(galleriesWindowEvent(bool)));
+        connect(dwGalleries, SIGNAL(onBrowse(GalleryData*)), SLOT(browseGalleryEvent(GalleryData*)));
+        connect(dwGalleries, SIGNAL(onAdd(const QString&)), SLOT(addGalleryEvent(const QString&)));
+        connect(dwGalleries, SIGNAL(onGallery(GalleryData*)), SLOT(galleryEvent(GalleryData*)));
+    }
+
+    if(!dwCustomGalleries)
+    {
+        dwCustomGalleries = new CustomGalleriesWindow(this);
+        //dwCustomGalleries->setFloating(true);
+        addDockWidget(Qt::RightDockWidgetArea, dwCustomGalleries);
+
+        ui->mViews->addAction(dwCustomGalleries->toggleViewAction());
+        if(Config::getInstance()->getIsCustomGalleriesWindow()) {
+            dwCustomGalleries->setVisible(true);
+        } else {
+            dwCustomGalleries->setVisible(false);
+        }
+
+        connect(dwCustomGalleries->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(customGalleriesWindowEvent(bool)));
+        connect(dwCustomGalleries, SIGNAL(onGallery(CustomGalleryData*)), SLOT(customGalleryEvent(CustomGalleryData*)));
+        connect(dwCustomGalleries, SIGNAL(onGotoKey(KeyData*, CustomGalleryData*)), SLOT(gotoKeyEvent(KeyData*, CustomGalleryData*)));
+    }
+
+    if(!dwKeys)
+    {
+        dwKeys = new KeyGalleriesWindow(this);
+        //dwKeys->setFloating(true);
+        addDockWidget(Qt::LeftDockWidgetArea, dwKeys);
+
+        ui->mViews->addAction(dwKeys->toggleViewAction());
+        if(Config::getInstance()->getIsKeyGalleriesWindow()) {
+            dwKeys->setVisible(true);
+        } else {
+            dwKeys->setVisible(false);
+        }
+
+        connect(dwKeys->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(keyGalleriesWindowEvent(bool)));
+        connect(dwKeys, SIGNAL(onGotoGallery(CustomGalleryData*)), SLOT(gotoCustomGalleryEvent(CustomGalleryData*)));
+        connect(dwKeys, SIGNAL(onGallery(CustomGalleryData*)), SLOT(customGalleryEvent(CustomGalleryData*)));
+    }
+
+    if(!dwDownloads)
+    {
+        dwDownloads = new DownloadsWindow(this);
+        //dwDownloads->setFloating(true);
+        addDockWidget(Qt::LeftDockWidgetArea, dwDownloads);
+
+        ui->mViews->addAction(dwDownloads->toggleViewAction());
+
+        if(Config::getInstance()->getIsDownloadsWindow()) {
+            dwDownloads->setVisible(true);
+        } else {
+            dwDownloads->setVisible(false);
+        }
+        connect(dwDownloads->toggleViewAction(), SIGNAL(triggered(bool)), this, SLOT(downloadsWindowEvent(bool)));
     }
 }

@@ -51,6 +51,7 @@ public:
     FilterTypeEnum getGalleryFilterType() const;
     IconSizeEnum getCustomGalleryIconSize() const;
     IconSizeEnum getGalleryIconSize() const;
+    const QString& getWorkspacePath() const;
     int getActiveDownloadCount() const;
 
 public:
@@ -64,6 +65,7 @@ public:
     void setGalleryFilterType(FilterTypeEnum filter);
     void setCustomGalleryIconSize(IconSizeEnum size);
     void setGalleryIconSize(IconSizeEnum size);
+    void setWorkspacePath(const QString& path);
     void setActiveDownloadCount(int value);
 
 public:
@@ -79,6 +81,7 @@ private:
     IconSizeEnum customGalleryIconSize;
     IconSizeEnum galleryIconSize;
 
+    QString workspacePath;
     int activeDownloadCount;
 
 private:

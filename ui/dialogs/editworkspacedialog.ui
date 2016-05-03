@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>EditWorkspaceDialog</class>
+ <widget class="QDialog" name="EditWorkspaceDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Edit Workspace</string>
+  </property>
+  <layout class="QVBoxLayout" name="lLayout">
+   <item>
+    <widget class="QLabel" name="lSource">
+     <property name="text">
+      <string>Source:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="wSource" native="true">
+     <layout class="QHBoxLayout" name="lSourceContent">
+      <property name="spacing">
+       <number>4</number>
+      </property>
+      <property name="margin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QLineEdit" name="leSource"/>
+      </item>
+      <item>
+       <widget class="QToolButton" name="tbBrowse">
+        <property name="icon">
+         <iconset resource="../../galleryexplorer.qrc">
+          <normaloff>:/res/resources/folder.png</normaloff>:/res/resources/folder.png</iconset>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="wFree" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="wButtons" native="true">
+     <layout class="QHBoxLayout" name="lButtons">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="margin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="pbSet">
+        <property name="text">
+         <string>Set</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QWidget" name="wBtnFree" native="true"/>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pbCancel">
+        <property name="text">
+         <string>Cancel</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../../galleryexplorer.qrc"/>
+ </resources>
+ <connections/>
+</ui>

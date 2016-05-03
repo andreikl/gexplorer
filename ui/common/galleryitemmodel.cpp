@@ -5,9 +5,31 @@
 #include "helpers/gstreamerhelper.h"
 #include "helpers/commonhelper.h"
 
-#include "ui/common/gallerylistitem.h"
+#include "ui/common/galleryitemmodel.h"
 
-GalleryListItem::GalleryListItem(int size)
+GalleryItemModel::GalleryItemModel(CustomGalleryItemData& item, int size)
+{
+    init(size);
+
+    this->item = &item;
+
+    type = Config::ETypeCustomGalleryItem;
+}
+
+GalleryItemModel::GalleryItemModel(GalleryItemData& item, int size)
+{
+    init(size);
+
+    this->item = &item;
+
+    type = Config::ETypeGalleryItem;
+}
+
+GalleryItemModel::~GalleryItemModel()
+{
+}
+
+void GalleryItemModel::init(int size)
 {
     isLoad = false;
     this->size = size;
@@ -16,45 +38,27 @@ GalleryListItem::GalleryListItem(int size)
     pixmap.fill(Qt::white);
 }
 
-GalleryListItem::GalleryListItem(CustomGalleryItemData& item, int size): GalleryListItem(size)
-{
-    this->item = &item;
-
-    type = Config::ETypeCustomGalleryItem;
-}
-
-GalleryListItem::GalleryListItem(GalleryItemData& item, int size): GalleryListItem(size)
-{
-    this->item = &item;
-
-    type = Config::ETypeGalleryItem;
-}
-
-GalleryListItem::~GalleryListItem()
-{
-}
-
-Config::ItemTypeEnum GalleryListItem::getType()
+Config::ItemTypeEnum GalleryItemModel::getType()
 {
     return type;
 }
 
-int GalleryListItem::getSize()
+int GalleryItemModel::getSize()
 {
     return size;
 }
 
-void* GalleryListItem::getItem()
+void* GalleryItemModel::getItem()
 {
     return item;
 }
 
-const QPixmap& GalleryListItem::getPixmap()
+const QPixmap& GalleryItemModel::getPixmap()
 {
     return pixmap;
 }
 
-const QString& GalleryListItem::getName()
+const QString& GalleryItemModel::getName()
 {
     if(type == Config::ETypeGalleryItem) {
         return reinterpret_cast<GalleryItemData*>(item)->getFileName();
@@ -63,7 +67,7 @@ const QString& GalleryListItem::getName()
     }
 }
 
-void GalleryListItem::loadPixmap(int size)
+void GalleryItemModel::loadPixmap(int size)
 {
     if(type == Config::ETypeGalleryItem) {
         return loadPixmap(*reinterpret_cast<GalleryItemData*>(item), size);
@@ -72,7 +76,7 @@ void GalleryListItem::loadPixmap(int size)
     }
 }
 
-void GalleryListItem::loadPixmap(CustomGalleryItemData& item, int size)
+void GalleryItemModel::loadPixmap(CustomGalleryItemData& item, int size)
 {
     isLoad = true;
     const QString& path = CommonHelper::getPath(item);
@@ -106,7 +110,7 @@ void GalleryListItem::loadPixmap(CustomGalleryItemData& item, int size)
     }
 }
 
-void GalleryListItem::loadPixmap(GalleryItemData& item, int size)
+void GalleryItemModel::loadPixmap(GalleryItemData& item, int size)
 {
     isLoad = true;
     const QString& path = CommonHelper::getPath(item);

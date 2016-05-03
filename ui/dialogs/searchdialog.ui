@@ -31,7 +31,7 @@
    <item>
     <widget class="QLabel" name="lPath">
      <property name="text">
-      <string>Search path:</string>
+      <string>Search path (first part of the path):</string>
      </property>
     </widget>
    </item>
@@ -64,7 +64,16 @@
       <property name="spacing">
        <number>0</number>
       </property>
-      <property name="margin">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
        <number>0</number>
       </property>
       <item>

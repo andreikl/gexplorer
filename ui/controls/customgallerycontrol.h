@@ -26,10 +26,17 @@ class CustomGalleryControl: public QWidget
     Q_OBJECT
 
 public:
+    static CustomGalleryControl* createInstance(QWidget* parent);
+    static CustomGalleryControl* getInstance();
+
+private:
     explicit CustomGalleryControl(QWidget* parent);
+
+public:
     virtual ~CustomGalleryControl();
 
 public:
+    CustomGalleryItemData* getSelected();
     CustomGalleryData* getGallery();
     GalleryListModel* getModel();
     TitleControl* getTitle();
@@ -72,6 +79,8 @@ private:
     void updateButtons();
 
 private:
+    static CustomGalleryControl* control;
+    CustomGalleryItemData* selectedItem;
     CustomGalleryData* data;
 
 private:

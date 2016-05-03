@@ -11,7 +11,9 @@
 #include "handlers/namespoolhandler.h"
 #include "handlers/downloadhandler.h"
 #include "handlers/galleryhandler.h"
+#include "handlers/aliashandler.h"
 #include "handlers/keyhandler.h"
+#include "handlers/urlhandler.h"
 #include "handlers/dbhandler.h"
 
 #include "application.h"
@@ -32,6 +34,8 @@ Application* Application::createInstance(const QString& path)
         bool res = db;
         res && (res = NamesPoolHandler::createInstance());
         res && (res = db->getExtensions(tempApp->extensions));
+        res && (res = UrlHandler::createInstance());
+        res && (res = AliasHandler::createInstance());
         qDebug() << QTime::currentTime() << "loading galleries";
         res && (res = GalleryHandler::createInstance(tempApp));
         qDebug() << QTime::currentTime() << "loading custom galleries";
@@ -83,6 +87,10 @@ Application::~Application()
     if(GalleryHandler::getInstance())
     {
         delete GalleryHandler::getInstance();
+    }
+    if(UrlHandler::getInstance())
+    {
+        delete UrlHandler::getInstance();
     }
     foreach(ExtensionData* pExtension, extensions) {
         delete pExtension;
@@ -156,8 +164,12 @@ void Application::finishEvent(DownloadHandler* sender, bool res)
     GalleryItemData::GalleryItemStatusEnum status = (res)? GalleryItemData::StatusComplete: GalleryItemData::StatusError;
     GalleryItemData* item = GalleryHandler::getInstance()->getGalleryItemById(sender->getItem()->getId());
     if(item != NULL) {
-        item->setStatus(status);
-        if(!DbHandler::getInstance()->updGalleryItemStatus(*item)) {
+        if (!res) {
+            this->addToDownload(*item);
+        } else {
+            item->setStatus(status);
+            if(!DbHandler::getInstance()->updGalleryItemStatus(*item)) {
+            }
         }
     }
 

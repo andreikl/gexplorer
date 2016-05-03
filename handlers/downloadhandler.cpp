@@ -61,6 +61,8 @@ bool DownloadHandler::load(QNetworkAccessManager* network)
 {
     bool res = false;
 
+    this->network = network;
+
     data = NamesPoolHandler::getInstance()->GetEmptyData();
     data->isBusy = true;
 
@@ -71,7 +73,6 @@ bool DownloadHandler::load(QNetworkAccessManager* network)
     file->open(QIODevice::WriteOnly);
 
     QNetworkRequest req(QUrl(item->getUrl()));
-    //req.setRawHeader(QString("Referer").toAscii(), gallery->getSource().toAscii());
     req.setRawHeader(QString("Referer").toLatin1(), gallery->getSource().toLatin1());
 
     reply = network->get(req);
@@ -92,6 +93,23 @@ void DownloadHandler::finishEvent()
     bool res = false;
 
     if(reply->error() == QNetworkReply::NoError) {
+        //qDebug() << reply->rawHeaderPairs();
+        //qDebug() << reply->url();
+
+        QUrl redirectUrl = reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+
+        if(!redirectUrl.isEmpty() && redirectUrl != reply->url()) {
+            delete reply;
+
+            QNetworkRequest req(redirectUrl);
+            req.setRawHeader(QString("Referer").toLatin1(), gallery->getSource().toLatin1());
+
+            reply = network->get(req);
+            connect(reply, SIGNAL(readyRead()), SLOT(dataEvent()));
+            connect(reply, SIGNAL(finished()), SLOT(finishEvent()));
+
+            return;
+        }
 
         if(file->isOpen()) {
             file->close();
@@ -101,21 +119,47 @@ void DownloadHandler::finishEvent()
         if(!dir.exists()) {
             dir.mkpath(dir.path());
         }
-        res = dir.rename(QDir::currentPath() + QDir::separator() + data->name, dir.path() + QDir::separator() + item->getFileName());
+
+        QString dest = dir.path() + QDir::separator() + item->getFileName();
+        if(QFile::exists(dest)) {
+            QFile::remove(dest);
+        }
+        res = dir.rename(QDir::currentPath() + QDir::separator() + data->name, dest);
 
         if(data->isBusy) {
             data->isBusy = false;
         }
+
     } else {
         qDebug() << "download finish" << reply->errorString();
+
+        /*if (loaded > 0) {
+            QNetworkRequest req(QUrl(item->getUrl()));
+            req.setRawHeader(QString("Referer").toLatin1(), gallery->getSource().toLatin1());
+            const QString& str = QString("bytes=") + QString(loaded);
+            req.setRawHeader(QString("Range").toLatin1(), str.toLatin1());
+
+            reply = network->get(req);
+            connect(reply, SIGNAL(readyRead()), SLOT(dataEvent()));
+            connect(reply, SIGNAL(finished()), SLOT(finishEvent()));
+
+            if(file && file->isOpen() && reply->error() == QNetworkReply::NoError) {
+                qDebug() << "continue downloading from: " << str;
+            } else {
+                cleanContent();
+                emit onFinish(this, res);
+            }
+        } else {
+            cleanContent();
+            emit onFinish(this, res);
+        }*/
     }
+
+    cleanContent();
+    emit onFinish(this, res);
 
     //delete reply;
     //reply = NULL;
-
-    cleanContent();
-
-    emit onFinish(this, res);
 }
 
 void DownloadHandler::dataEvent()

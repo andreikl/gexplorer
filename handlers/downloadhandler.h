@@ -12,7 +12,7 @@ class QFile;
 QT_END_NAMESPACE
 
 class GalleryItemData;
-class NamePoolData;
+struct NamePoolData;
 class GalleryData;
 
 class DownloadHandler: public QObject
@@ -28,6 +28,7 @@ public:
     uint getPercent() const;
 
 public:
+    bool isError() const;
     bool isDownload() const;
     bool load(QNetworkAccessManager* network);
 
@@ -50,6 +51,7 @@ private:
     uint loaded;
 
 private:
+    QNetworkAccessManager* network;
     QNetworkReply* reply;
     QFile* file;
 };

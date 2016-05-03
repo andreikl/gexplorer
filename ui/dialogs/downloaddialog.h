@@ -3,6 +3,8 @@
 
 #include <QtWidgets/QDialog>
 
+class CustomGalleryItemData;
+class GalleryItemModel;
 class GalleryData;
 
 QT_BEGIN_NAMESPACE
@@ -24,6 +26,7 @@ public:
 
 public:
     QString getPath();
+    CustomGalleryItemData* getUniteItem();
 
 private slots:
     void itemChangedEvent(QListWidgetItem* item);
@@ -32,8 +35,10 @@ private slots:
     void itemAddEvent();
 
 private:
-    Ui::DownloadDialog* ui;
+    GalleryItemModel* selectedModel;
     GalleryData* data;
+
+    Ui::DownloadDialog* ui;
 };
 
 #endif // DOWNLOADDIALOG_H

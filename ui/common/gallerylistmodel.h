@@ -11,7 +11,7 @@ QT_END_NAMESPACE
 
 class CustomGalleryItemData;
 class CustomGalleryData;
-class GalleryListItem;
+class GalleryItemModel;
 class GalleryItemData;
 class GalleryData;
 
@@ -55,8 +55,8 @@ private slots:
     void loadEvent();
 
 private:
-    GalleryListItem* getItemByGalleryItem(CustomGalleryItemData* item);
-    GalleryListItem* getItemByGalleryItem(GalleryItemData* item);
+    GalleryItemModel* getItemByGalleryItem(CustomGalleryItemData* item);
+    GalleryItemModel* getItemByGalleryItem(GalleryItemData* item);
 
 private:
     Config::ItemTypeEnum type;
@@ -64,7 +64,7 @@ private:
     int size;
 
 private:
-    QList<GalleryListItem*> items;
+    QList<GalleryItemModel*> items;
     QSortFilterProxyModel* proxy;
 
 };

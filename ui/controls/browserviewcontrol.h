@@ -18,7 +18,7 @@ public:
     virtual ~BrowserViewControl();
 
 public:
-    QStack<QString>& getHistory();
+    //QStack<QString>& getHistory();
 
     const QList<BrowserNetworkAccessManager::StreamData>& getStreamData();
     QString getTopHref(int x, int y);
@@ -39,7 +39,7 @@ private slots:
 private:
     QString topHref;
     QString relatedUrl;
-    QStack<QString> history;
+    //QStack<QString> history;
 };
 
 #endif // BROWSERVIEWCONTROL_H

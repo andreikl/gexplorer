@@ -8,7 +8,6 @@ class KeyGalleriesWindow;
 class GalleriesWindow;
 class DownloadsWindow;
 
-class CustomGalleryControl;
 class BrowserControl;
 class GalleryControl;
 
@@ -36,6 +35,9 @@ public:
     virtual ~MainWindow();
 
 private slots:
+    void editWorkspaceEvent();
+    void loadModelEvent();
+
     void gotoCustomGalleryItemEvent(CustomGalleryItemData* item);
     void gotoCustomGalleryEvent(CustomGalleryData* value);
     void gotoGalleryItemEvent(GalleryItemData* item);
@@ -62,13 +64,15 @@ private slots:
 private:
     void showBrowser();
 
-private:
-    CustomGalleriesWindow* dwCustomGalleries;
-    GalleriesWindow* dwGalleries;
-    DownloadsWindow* dwDownloads;
-    KeyGalleriesWindow* dwKeys;
+    void unloadWindows();
+    void loadWindows();
 
-    CustomGalleryControl* customGallery;
+private:
+    GalleriesWindow* dwGalleries;
+    CustomGalleriesWindow* dwCustomGalleries;
+    KeyGalleriesWindow* dwKeys;
+    DownloadsWindow* dwDownloads;
+
     GalleryControl* gallery;
     BrowserControl* browser;
 

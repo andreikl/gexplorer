@@ -12,18 +12,17 @@ namespace Ui
     class EditNameDialog;
 }
 
-class EditNameDialog: public QDialog
-{
+class EditNameDialog: public QDialog {
     Q_OBJECT
-
-private:
-    EditNameDialog(QWidget* parent);
 
 public:
     EditNameDialog(QWidget* parent, CustomGalleryData& customGallery);
     EditNameDialog(QWidget* parent, GalleryData& gallery);
     EditNameDialog(QWidget* parent, KeyData& key);
     virtual ~EditNameDialog();
+
+private:
+    void init();
 
 private slots:
     void textChangedEvent(const QString& value);

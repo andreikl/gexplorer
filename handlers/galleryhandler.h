@@ -29,14 +29,15 @@ public:
     const QList<GalleryData*>& getGalleries() const;
 
 public:
+    void addWebGallery(const GalleryData& value, CustomGalleryItemData* item = NULL);
     void addToWebGallery(const GalleryData& value);
-    void addWebGallery(const GalleryData& value);
     void addFileGallery(const QString& source);
 
     bool delFromGallery(GalleryItemData& value);
     bool delGallery(GalleryData& value);
 
     bool updGalleryItemReference(const CustomGalleryItemData& item, const CustomGalleryItemData& reference);
+    GalleryData* updGallerySource(GalleryData& value);
 
 signals:
     void onUpdGalleryItem(GalleryItemData* value);

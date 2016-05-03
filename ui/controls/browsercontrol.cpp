@@ -40,6 +40,7 @@ BrowserControl::BrowserControl(QWidget* parent): QWidget(parent), gallery(NULL),
     web->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     web->setContextMenuPolicy(Qt::NoContextMenu);
     //web->installEventFilter(this);
+    connect(web, SIGNAL(loadStarted()), this, SLOT(loadStartedEvent()));
     connect(web, SIGNAL(onTopHref()), this, SLOT(topHrefEvent()));
 
     createMenuAndActions();
@@ -65,8 +66,10 @@ TitleControl* BrowserControl::getTitle()
 
 void BrowserControl::goTo(GalleryData* gallery)
 {
+    if(gallery) {
+        web->load(QUrl(gallery->getSource()));
+    }
     this->gallery = gallery;
-    web->load(QUrl(gallery->getSource()));
     updateButtons();
 }
 
@@ -128,7 +131,6 @@ void BrowserControl::addGalleryEvent()
     //qDebug() << web->getTopHref();
 
     parseUrl(topHref, urlPath, urlExtension);
-    //qDebug() << urlPath << ", " << urlExtension;
 
     SearchDialog* search = new SearchDialog(this, url.resolved(QUrl(topHref)).toString(), urlPath, urlExtension);
     search->show();
@@ -137,34 +139,34 @@ void BrowserControl::addGalleryEvent()
         urlExtension = search->getExtension();
         urlPath = search->getPath();
 
+        //qDebug() << urlPath << ", " << urlExtension;
         QWebElement element = web->page()->mainFrame()->documentElement();
-        searchSameUrls(element, urlPath, urlExtension, data);
+        searchUrls(url, element, urlPath, urlExtension, data);
+
+        if(Application::getInstance()->getExtensionByName(urlExtension) != NULL) {
+            if(urlPath.isEmpty()) {
+                urlPath = "./";
+            }
+
+            QString p = url.host() + url.path();
+            data->setPath(p);
+
+            foreach(GalleryItemData* item, data->getItems()) {
+                item->setPath(QDir("").path());
+            }
+
+            DownloadDialog* download = new DownloadDialog(this, *data);
+            download->show();
+            download->exec();
+            if(download->result() == QDialog::Accepted) {
+                data->setPath(download->getPath());
+                GalleryHandler::getInstance()->addWebGallery(*data, download->getUniteItem());
+            }
+            delete download;
+        }
     }
     delete search;
 
-    if(Application::getInstance()->getExtensionByName(urlExtension) != NULL) {
-        if(urlPath.isEmpty()) {
-            urlPath = "./";
-        }
-
-        QString p = url.host() + url.path();
-        QString u = url.resolved(QUrl(urlPath)).toString();
-
-        data->setPath(p);
-        foreach(GalleryItemData* item, data->getItems()) {
-            item->setUrl(u + item->getFileName());
-            item->setPath(QDir("").path());
-        }
-
-        DownloadDialog* download = new DownloadDialog(this, *data);
-        download->show();
-        download->exec();
-        if(download->result() == QDialog::Accepted) {
-            data->setPath(download->getPath());
-            GalleryHandler::getInstance()->addWebGallery(*data);
-        }
-        delete download;
-    }
     delete data;
 }
 
@@ -196,7 +198,7 @@ void BrowserControl::addStreamGalleryEvent()
     download->exec();
     if(download->result() == QDialog::Accepted) {
         data->setPath(download->getPath());
-        GalleryHandler::getInstance()->addWebGallery(*data);
+        GalleryHandler::getInstance()->addWebGallery(*data, download->getUniteItem());
     }
     delete download;
     delete data;
@@ -223,7 +225,7 @@ void BrowserControl::addItemsEvent()
         urlPath = search->getPath();
 
         QWebElement element = web->page()->mainFrame()->documentElement();
-        searchSameUrls(element, urlPath, urlExtension, data);
+        searchUrls(url, element, urlPath, urlExtension, data);
     }
     delete search;
 
@@ -232,9 +234,7 @@ void BrowserControl::addItemsEvent()
             urlPath = "./";
         }
 
-        QString u = url.resolved(QUrl(urlPath)).toString();
         foreach(GalleryItemData* item, data->getItems()) {
-            item->setUrl(u + item->getFileName());
             item->setPath(QDir("").path());
         }
 
@@ -268,6 +268,11 @@ void BrowserControl::addItemsEvent()
     delete data;
 }
 
+void BrowserControl::loadStartedEvent()
+{
+    gallery = NULL;
+}
+
 void BrowserControl::topHrefEvent()
 {
     if(mMenu->isHidden()) {
@@ -280,32 +285,34 @@ void BrowserControl::openEvent()
     goTo(topHref);
 }
 
-void BrowserControl::backEvent()
-{
-    QStack<QString>& history = web->getHistory();
-    history.pop();
-
-    goTo(history.top());
-}
-
 void BrowserControl::goEvent()
 {
     goTo(lineEdit->text());
 }
 
-void BrowserControl::searchSameUrls(QWebElement& element, const QString& path, const QString& ext, GalleryData* data)
+void BrowserControl::searchUrls(const QUrl& pageUrl, QWebElement& element, const QString& pattern, const QString& ext, GalleryData* data)
 {
     foreach(QWebElement e, element.findAll("[href]")) {
         QString url = e.attribute("href");
-        if(url.startsWith(path, Qt::CaseInsensitive) && url.endsWith(ext, Qt::CaseInsensitive)) {
-            QString midle = url.mid(path.length(), url.length() - path.length() - ext.length());
+        if(url.startsWith(pattern, Qt::CaseInsensitive) && url.endsWith(ext, Qt::CaseInsensitive)) {
+
+            QString urlPath;
+            QString urlExtension;
+            parseUrl(url, urlPath, urlExtension);
+
+            /*QString midle = url.mid(urlPath.length(), url.length() - urlPath.length() - urlExtension.length());
             if(midle.contains("/")) {
                 continue;
-            }
-            QString file = url.right(url.length() - path.length());
+            }*/
+
+            QString file = url.right(url.length() - urlPath.length());
             if(!isContainsFile(data, file)) {
-                GalleryItemData* item = new GalleryItemData(data, *Application::getInstance()->getExtensionByName(ext));
+                GalleryItemData* item = new GalleryItemData(data, *Application::getInstance()->getExtensionByName(urlExtension));
+
                 item->setFileName(file);
+
+                QString u = pageUrl.resolved(QUrl(urlPath + file)).toString();
+                item->setUrl(u);
             }
         }
     }
@@ -330,7 +337,8 @@ void BrowserControl::parseUrl(const QString& url, QString& path, QString& ext)
         QStringList list = url.split("/");
         QStringList listExt = list[list.count() - 1].split(".");
         if(listExt.count() > 1) {
-            ext = list[list.count() - 1].right(list[list.count() - 1].length() - listExt[0].length());
+            //ext = list[list.count() - 1].right(list[list.count() - 1].length() - listExt[0].length());
+            ext += listExt[listExt.count() - 1];
         }
         path = url.left(url.length() - list[list.count() - 1].length());
     }
@@ -342,22 +350,22 @@ void BrowserControl::createMenuAndActions()
 
     mMenu = new QMenu(this);
 
+    title->getToolBar()->addAction(web->pageAction(QWebPage::Back));
+    title->getToolBar()->addAction(web->pageAction(QWebPage::Forward));
+    title->getToolBar()->addAction(web->pageAction(QWebPage::Reload));
+    title->getToolBar()->addAction(web->pageAction(QWebPage::Stop));
+
     lineEdit = new QLineEdit(this);
     lineEdit->setMaximumHeight(30);
     lineEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     title->getToolBar()->addWidget(lineEdit);
+    connect(lineEdit, SIGNAL(returnPressed()), this, SLOT(goEvent()));
 
-    aGo = new QAction("&Go", this);
+    /*aGo = new QAction("&Go", this);
     aGo->setStatusTip("Go to url");
     aGo->setIcon(QIcon(":/res/resources/view.png"));
     title->getToolBar()->addAction(aGo);
-    connect(aGo, SIGNAL(triggered()), this, SLOT(goEvent()));
-
-    aBack = new QAction("&Back", this);
-    aBack->setStatusTip("Back to url");
-    aBack->setIcon(QIcon(":/res/resources/left.png"));
-    title->getToolBar()->addAction(aBack);
-    connect(aBack, SIGNAL(triggered()), this, SLOT(backEvent()));
+    connect(aGo, SIGNAL(triggered()), this, SLOT(goEvent()));*/
 
     aOpen = new QAction("&Open", this);
     aOpen->setStatusTip("Open to url");
@@ -395,12 +403,6 @@ void BrowserControl::createMenuAndActions()
 
 void BrowserControl::updateButtons()
 {
-    if(web->getHistory().count() > 1) {
-        aBack->setEnabled(true);
-    } else {
-        aBack->setEnabled(false);
-    }
-
     if(gallery) {
         aAddDeleted->setEnabled(false);
 

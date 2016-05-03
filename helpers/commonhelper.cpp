@@ -15,13 +15,20 @@ QString CommonHelper::getPath(const GalleryItemData& item)
 
     QString p;
     QUrl path = QUrl::fromLocalFile(item.getGallery()->getPath() + QDir::separator());
+    p = path.toLocalFile();
+
+    path = QUrl::fromLocalFile(item.getPath() + QDir::separator() + item.getFileName());
+    return p + QDir::separator() + path.toLocalFile();
+
+    /*QString p;
+    QUrl path = QUrl::fromLocalFile(item.getGallery()->getPath() + QDir::separator());
     path = path.resolved(QUrl::fromLocalFile(item.getPath() + QDir::separator()));
     path = path.resolved(QUrl::fromLocalFile(item.getFileName()));
     if(path.isRelative()) {
         p = QDir::currentPath() + QDir::separator() + path.toLocalFile();
     } else {
         p = path.toLocalFile();
-    }
+    }*/
     return p;
 }
 

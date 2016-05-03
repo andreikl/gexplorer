@@ -2,6 +2,7 @@
 #define KEYDATA_H
 
 #include <QtCore/QMetaType>
+#include <QtCore/QString>
 
 #include "data/basedata.h"
 

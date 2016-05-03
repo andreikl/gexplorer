@@ -5,8 +5,41 @@
 #include "ui/dialogs/editnamedialog.h"
 #include "ui_editnamedialog.h"
 
-EditNameDialog::EditNameDialog(QWidget* parent): QDialog(parent), ui(new Ui::EditNameDialog)
+EditNameDialog::EditNameDialog(QWidget* parent, CustomGalleryData& customGallery): QDialog(parent), ui(new Ui::EditNameDialog)
 {
+    init();
+
+    this->customGallery = &customGallery;
+
+    ui->leName->setText(customGallery.getName());
+
+    updateButtons();
+}
+
+EditNameDialog::EditNameDialog(QWidget* parent, GalleryData& gallery): QDialog(parent), ui(new Ui::EditNameDialog)
+{
+    init();
+
+    this->gallery = &gallery;
+
+    ui->leName->setText(gallery.getSource());
+    //ui->leName->setReadOnly(true);
+
+    updateButtons();
+}
+
+EditNameDialog::EditNameDialog(QWidget* parent, KeyData& key): QDialog(parent), ui(new Ui::EditNameDialog)
+{
+    init();
+
+    this->key = &key;
+
+    ui->leName->setText(key.getName());
+
+    updateButtons();
+}
+
+void EditNameDialog::init() {
     customGallery = NULL;
     gallery = NULL;
     key = NULL;
@@ -19,34 +52,6 @@ EditNameDialog::EditNameDialog(QWidget* parent): QDialog(parent), ui(new Ui::Edi
     connect(ui->pbCancel, SIGNAL(clicked()), SLOT(close()));
 }
 
-EditNameDialog::EditNameDialog(QWidget* parent, CustomGalleryData& customGallery): EditNameDialog(parent)
-{
-    this->customGallery = &customGallery;
-
-    ui->leName->setText(customGallery.getName());
-
-    updateButtons();
-}
-
-EditNameDialog::EditNameDialog(QWidget* parent, GalleryData& gallery): EditNameDialog(parent)
-{
-    this->gallery = &gallery;
-
-    ui->leName->setText(gallery.getSource());
-    ui->leName->setReadOnly(true);
-
-    updateButtons();
-}
-
-EditNameDialog::EditNameDialog(QWidget* parent, KeyData& key): EditNameDialog(parent)
-{
-    this->key = &key;
-
-    ui->leName->setText(key.getName());
-
-    updateButtons();
-}
-
 EditNameDialog::~EditNameDialog()
 {
     delete ui;
@@ -56,6 +61,8 @@ void EditNameDialog::textChangedEvent(const QString& value)
 {
     if(customGallery) {
         customGallery->setName(value);
+    } else if(gallery) {
+        gallery->setSource(value);
     } else if(key) {
         key->setName(value);
     }
@@ -65,6 +72,8 @@ void EditNameDialog::textChangedEvent(const QString& value)
 void EditNameDialog::updateButtons()
 {
     if(customGallery && !customGallery->getName().isEmpty()) {
+        ui->pbSave->setEnabled(true);
+    } else if(gallery && !gallery->getSource().isEmpty()) {
         ui->pbSave->setEnabled(true);
     } else if(key && !key->getName().isEmpty()) {
         ui->pbSave->setEnabled(true);

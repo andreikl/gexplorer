@@ -14,6 +14,7 @@
 #include "helpers/commonhelper.h"
 
 #include "handlers/customgalleryhandler.h"
+#include "handlers/aliashandler.h"
 #include "handlers/dbhandler.h"
 
 #include "handlers/galleryhandler.h"
@@ -129,6 +130,49 @@ void GalleryHandler::addFileGallery(const QString& source)
     }
 }
 
+void GalleryHandler::addWebGallery(const GalleryData& value, CustomGalleryItemData* item)
+{
+    AliasData* alias = AliasHandler::getInstance()->getAliasByUrl(value.getSource());
+    if(alias) {
+        qDebug() << "Alias exist";
+        return;
+    }
+
+    GalleryData* gallery = value.clone();
+    foreach(GalleryItemData* item, gallery->getItems()) {
+        item->setStatus(GalleryItemData::StatusDownload);
+    }
+    if(DbHandler::getInstance()->addGallery(*gallery)) {
+        galleries.append(gallery);
+        emit onAddGallery(gallery);
+
+        if(item) {
+            QList<CustomGalleryItemId> ids;
+            foreach(GalleryItemData* i, gallery->getItems()) {
+                CustomGalleryItemId ii;
+                ii.gid = gallery->getId();
+                ii.id = i->getId();
+                ids.append(ii);
+            }
+            QList<CustomGalleryItemData*> items = CustomGalleryHandler::getInstance()->addToCustomGallery(*item->getCustomGallery(), ids);
+            foreach(CustomGalleryItemData* i, items) {
+                CustomGalleryHandler::getInstance()->updCustomGalleryItemUnite(*i, item->getId());
+                updGalleryItemReference(*i, *item);
+            }
+            foreach(GalleryItemData* i, gallery->getItems()) {
+                i->setStatus(GalleryItemData::StatusComplete);
+                DbHandler::getInstance()->updGalleryItemStatus(*i);
+            }
+        } else {
+            foreach(GalleryItemData* item, gallery->getItems()) {
+                Application::getInstance()->addToDownload(*item);
+            }
+        }
+    } else {
+        delete gallery;
+    }
+}
+
 void GalleryHandler::addToWebGallery(const GalleryData& value)
 {
     GalleryData* gallery = value.clone();
@@ -146,25 +190,6 @@ void GalleryHandler::addToWebGallery(const GalleryData& value)
         emit onUpdGallery(g);
     }
     delete gallery;
-}
-
-void GalleryHandler::addWebGallery(const GalleryData& value)
-{
-    GalleryData* gallery = value.clone();
-    foreach(GalleryItemData* item, gallery->getItems()) {
-        item->setStatus(GalleryItemData::StatusDownload);
-        /*if(!DbHandler::getInstance()->updGalleryItemStatus(*item)) {
-        }*/
-    }
-    if(DbHandler::getInstance()->addGallery(*gallery)) {
-        galleries.append(gallery);
-        emit onAddGallery(gallery);
-        foreach(GalleryItemData* item, gallery->getItems()) {
-            Application::getInstance()->addToDownload(*item);
-        }
-    } else {
-        delete gallery;
-    }
 }
 
 bool GalleryHandler::delFromGallery(GalleryItemData& value)
@@ -243,13 +268,15 @@ bool GalleryHandler::updGalleryItemReference(const CustomGalleryItemData& item, 
         gitem->reference = greference;
         gitem->referenceAngle = angle;
 
-        const QUrl& galleryPath = QUrl::fromLocalFile(gitem->getGallery()->getPath() + QDir::separator());
+        QString p = gitem->getGallery()->getPath();
+        if(!p.endsWith(QDir::separator())) {
+            p += QDir::separator();
+        }
+        const QUrl& galleryPath = QUrl::fromLocalFile(p);
         const QUrl& path = galleryPath.resolved(QUrl::fromLocalFile(gitem->getPath()));
         QDir dir(path.toLocalFile());
 
-        //qDebug() << "url path: " << path.toLocalFile();
-        qDebug() << "dir path: " << dir.path();
-        qDebug() << "dir name: " << dir.dirName();
+        //qDebug() << "dir path: " << p;
 
         dir.remove(gitem->fileName);
         dir.setFilter(QDir::AllEntries | QDir::NoDotAndDotDot);
@@ -265,6 +292,19 @@ bool GalleryHandler::updGalleryItemReference(const CustomGalleryItemData& item, 
         return true;
     }
     return false;
+}
+
+GalleryData* GalleryHandler::updGallerySource(GalleryData& value) {
+    GalleryData* gallery = getGalleryById(value.getId());
+    if(gallery->getSource().compare(value.getSource()) != 0) {
+        if(DbHandler::getInstance()->updGallerySource(value)) {
+            gallery->setSource(value.getSource());
+            emit onUpdGallery(gallery);
+        } else {
+            gallery = NULL;
+        }
+    }
+    return gallery;
 }
 
 GalleryData* GalleryHandler::getGalleryByPath(const QString& path) const

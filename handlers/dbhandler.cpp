@@ -14,7 +14,9 @@
 #include "data/galleryitemdata.h"
 #include "data/extensiondata.h"
 #include "data/gallerydata.h"
+#include "data/aliasdata.h"
 #include "data/keydata.h"
+#include "data/urldata.h"
 
 #include "handlers/customgalleryhandler.h"
 #include "handlers/galleryhandler.h"
@@ -27,6 +29,7 @@ DbHandler* DbHandler::createInstance(const QString& path)
 {
     if(!handler) {
         DbHandler* tempHandler = new DbHandler();
+        //tempHandler->db = QSqlDatabase::database("QSQLITE");
         tempHandler->db = QSqlDatabase::addDatabase("QSQLITE");
         tempHandler->db.setDatabaseName(path + QDir::separator() + DB_FILE_NAME);
         bool res = tempHandler->db.open();
@@ -36,6 +39,7 @@ DbHandler* DbHandler::createInstance(const QString& path)
             res = query.exec("PRAGMA foreign_keys = ON");
         }
         QSqlDatabase::database().transaction();
+
         if(res) {
             res = query.exec("CREATE TABLE IF NOT EXISTS statuses (id INTEGER PRIMARY KEY, name VARCHAR(256) NOT NULL)");
         }
@@ -112,6 +116,31 @@ DbHandler* DbHandler::createInstance(const QString& path)
             if(res) {
                 res = query.exec("INSERT INTO extensions (id, name, type) VALUES (6, '.flv', 2)");
             }
+        }
+        if(res) {
+            res = query.exec("SELECT id FROM extensions WHERE id=7");
+        }
+        if(res && !query.next()) {
+            res = query.exec("INSERT INTO extensions (id, name, type) VALUES (7, '.tif', 1)");
+        }
+        if(res) {
+            res = query.exec("SELECT id FROM extensions WHERE id=8");
+        }
+        if(res && !query.next()) {
+            res = query.exec("INSERT INTO extensions (id, name, type) VALUES (8, '.jpeg', 1)");
+        }
+        if(res) {
+            res = query.exec("SELECT id FROM extensions WHERE id=9");
+        }
+        if(res && !query.next()) {
+            res = query.exec("INSERT INTO extensions (id, name, type) VALUES (9, '.swf', 2)");
+        }
+
+        if(res) {
+            res = query.exec("CREATE TABLE IF NOT EXISTS urls (id INTEGER PRIMARY KEY, source VARCHAR(1024) NOT NULL UNIQUE, name VARCHAR(1024) NOT NULL)");
+        }
+        if(res) {
+            res = query.exec("CREATE TABLE IF NOT EXISTS aliases (id INTEGER PRIMARY KEY, alias VARCHAR(1024) NOT NULL UNIQUE)");
         }
         if(res) {
             res = query.exec("CREATE TABLE IF NOT EXISTS galleries (id INTEGER PRIMARY KEY, source VARCHAR(1024) NOT NULL UNIQUE, path VARCHAR(1024) NOT NULL, type INTEGER REFERENCES gallery_types(id))");
@@ -301,6 +330,37 @@ bool DbHandler::getKeys(QList<KeyData*>& keys)
     return res;
 }
 
+bool DbHandler::getUrls(QList<UrlData*>& urls)
+{
+    bool res = true;
+    QSqlQuery query;
+    res = query.exec("SELECT * FROM urls");
+    while(query.next()) {
+        UrlData* url = new UrlData();
+        url->setId(query.value(0).toInt());
+        url->setSource(query.value(1).toString());
+        url->setName(query.value(2).toString());
+        urls.append(url);
+    }
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+bool DbHandler::getAliases(QList<AliasData*>& aliases)
+{
+    bool res = true;
+    QSqlQuery query;
+    res = query.exec("SELECT * FROM aliases");
+    while(query.next()) {
+        AliasData* alias = new AliasData();
+        alias->setId(query.value(0).toInt());
+        alias->setAlias(query.value(1).toString());
+        aliases.append(alias);
+    }
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
 bool DbHandler::addToKey(const KeyData& key, const CustomGalleryData& value)
 {
     bool res = true;
@@ -437,7 +497,7 @@ bool DbHandler::addGallery(GalleryData& value)
             if(res) {
                 item->setId(query.lastInsertId().toInt());
             } else {
-                break;
+                //break;
             }
         }
     }
@@ -473,6 +533,43 @@ bool DbHandler::addKey(KeyData& value)
                 break;
             }
         }
+    }
+    if(res) {
+        value.setId(id);
+    }
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+bool DbHandler::addUrl(UrlData& value)
+{
+    bool res = true;
+    QSqlQuery query;
+    query.prepare("INSERT INTO urls (id, source, name) VALUES (NULL, :source, :name)");
+    query.bindValue(":source", value.getName());
+    query.bindValue(":name", value.getSource());
+    res = query.exec();
+    int id = 0;
+    if(res) {
+        id = query.lastInsertId().toInt();
+    }
+    if(res) {
+        value.setId(id);
+    }
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+bool DbHandler::addAlias(AliasData& value)
+{
+    bool res = true;
+    QSqlQuery query;
+    query.prepare("INSERT INTO aliases (id, alias) VALUES (NULL, :alias)");
+    query.bindValue(":alias", value.getAlias());
+    res = query.exec();
+    int id = 0;
+    if(res) {
+        id = query.lastInsertId().toInt();
     }
     if(res) {
         value.setId(id);
@@ -542,6 +639,28 @@ bool DbHandler::delKey(const KeyData& value)
     bool res = true;
     QSqlQuery query;
     query.prepare("DELETE FROM keys WHERE id = :id");
+    query.bindValue(":id", value.getId());
+    res = query.exec();
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+bool DbHandler::delUrl(const UrlData& value)
+{
+    bool res = true;
+    QSqlQuery query;
+    query.prepare("DELETE FROM urls WHERE id = :id");
+    query.bindValue(":id", value.getId());
+    res = query.exec();
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+bool DbHandler::delAlias(const AliasData& value)
+{
+    bool res = true;
+    QSqlQuery query;
+    query.prepare("DELETE FROM aliases WHERE id = :id");
     query.bindValue(":id", value.getId());
     res = query.exec();
     checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
@@ -701,12 +820,48 @@ bool DbHandler::updGalleryItemStatus(const GalleryItemData& item)
     return res;
 }
 
+bool DbHandler::updGallerySource(const GalleryData& value)
+{
+    bool res = true;
+    QSqlQuery query;
+    query.prepare("UPDATE galleries SET source = :source WHERE id = :id");
+    query.bindValue(":source", value.getSource());
+    query.bindValue(":id", value.getId());
+    res = query.exec();
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
 bool DbHandler::updKey(const KeyData& value)
 {
     bool res = true;
     QSqlQuery query;
     query.prepare("UPDATE keys SET name = :name WHERE id = :id");
     query.bindValue(":name", value.getName());
+    query.bindValue(":id", value.getId());
+    res = query.exec();
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+bool DbHandler::updUrl(const UrlData& value)
+{
+    bool res = true;
+    QSqlQuery query;
+    query.prepare("UPDATE urls SET name = :name WHERE id = :id");
+    query.bindValue(":name", value.getName());
+    query.bindValue(":id", value.getId());
+    res = query.exec();
+    checkResAndWriteError(res, query.lastError().text(), query.lastQuery());
+    return res;
+}
+
+bool DbHandler::updAlias(const AliasData& value)
+{
+    bool res = true;
+    QSqlQuery query;
+    query.prepare("UPDATE aliases SET alias = :alias WHERE id = :id");
+    query.bindValue(":alias", value.getAlias());
     query.bindValue(":id", value.getId());
     res = query.exec();
     checkResAndWriteError(res, query.lastError().text(), query.lastQuery());

@@ -33,10 +33,10 @@ BrowserViewControl::~BrowserViewControl()
 {
 }
 
-QStack<QString>& BrowserViewControl::getHistory()
+/*QStack<QString>& BrowserViewControl::getHistory()
 {
     return history;
-}
+}*/
 
 QString BrowserViewControl::getTopHref(int x, int y)
 {
@@ -88,23 +88,23 @@ void BrowserViewControl::urlChangedEvent(const QUrl& url) {
 }
 
 void BrowserViewControl::loadProgressEvent(int progress) {
-    reinterpret_cast<BrowserControl*>(parent())->lineEdit->setText(QString("%1 (%2)").arg(relatedUrl).arg(progress));
+    //reinterpret_cast<BrowserControl*>(parent())->lineEdit->setText(QString("%1 (%2)").arg(relatedUrl).arg(progress));
 }
 
 void BrowserViewControl::loadFinishedEvent() {
     //qDebug() << "stop";
-    const QString sUrl = url().toString();
+    //const QString sUrl = url().toString();
 
-    if(!history.isEmpty()) {
+    /*if(!history.isEmpty()) {
         const QString& sTopUrl = history.top();
         if(sUrl.compare(sTopUrl, Qt::CaseInsensitive)) {
            history.push(sUrl);
         }
     } else {
         history.push(sUrl);
-    }
+    }*/
 
-    reinterpret_cast<BrowserControl*>(parent())->lineEdit->setText(sUrl);
+    //reinterpret_cast<BrowserControl*>(parent())->lineEdit->setText(sUrl);
 }
 
 void BrowserViewControl::loadStartedEvent() {

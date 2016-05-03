@@ -1,5 +1,5 @@
-#ifndef GALLERYLISTITEM_H
-#define GALLERYLISTITEM_H
+#ifndef GALLERYITEMMODEL_H
+#define GALLERYITEMMODEL_H
 
 #include <QtCore/QMetaType>
 
@@ -10,15 +10,15 @@
 class CustomGalleryItemData;
 class GalleryItemData;
 
-class GalleryListItem
+class GalleryItemModel
 {
-private:
-    GalleryListItem(int size);
-
 public:
-    GalleryListItem(CustomGalleryItemData& item, int size);
-    GalleryListItem(GalleryItemData& item, int size);
-    virtual ~GalleryListItem();
+    GalleryItemModel(CustomGalleryItemData& item, int size);
+    GalleryItemModel(GalleryItemData& item, int size);
+    virtual ~GalleryItemModel();
+
+private:
+    void init(int size);
 
 public:
     Config::ItemTypeEnum getType();
@@ -46,6 +46,6 @@ private:
 
 };
 
-Q_DECLARE_METATYPE(GalleryListItem*)
+Q_DECLARE_METATYPE(GalleryItemModel*)
 
-#endif // GALLERYLISTITEM_H
+#endif // GALLERYITEMMODEL_H

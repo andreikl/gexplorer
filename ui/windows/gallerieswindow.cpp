@@ -170,6 +170,14 @@ void GalleriesWindow::editEvent()
         dialog->show();
         dialog->exec();
 
+        if(dialog->result() == QDialog::Accepted) {
+            GalleryData* g = GalleryHandler::getInstance()->updGallerySource(*cloneGallery);
+            if(g) {
+                const QModelIndex& i = twGalleries->model->getIndex(g);
+                twGalleries->selectionModel()->setCurrentIndex(i, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+            }
+        }
+
         delete dialog;
         delete cloneGallery;
     }
