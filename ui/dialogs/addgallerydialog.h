@@ -1,7 +1,7 @@
 #ifndef ADDGALLERYDIALOG_H
 #define ADDGALLERYDIALOG_H
 
-#include <QtWidgets/QDialog>
+#include <QDialog>
 
 namespace Ui
 {

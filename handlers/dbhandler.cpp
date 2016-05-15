@@ -135,6 +135,12 @@ DbHandler* DbHandler::createInstance(const QString& path)
         if(res && !query.next()) {
             res = query.exec("INSERT INTO extensions (id, name, type) VALUES (9, '.swf', 2)");
         }
+        if(res) {
+            res = query.exec("SELECT id FROM extensions WHERE id=10");
+        }
+        if(res && !query.next()) {
+            res = query.exec("INSERT INTO extensions (id, name, type) VALUES (10, '.gif', 1)");
+        }
 
         if(res) {
             res = query.exec("CREATE TABLE IF NOT EXISTS urls (id INTEGER PRIMARY KEY, source VARCHAR(1024) NOT NULL UNIQUE, name VARCHAR(1024) NOT NULL)");

@@ -1,7 +1,7 @@
 #ifndef GALLERYITEMACTION_H
 #define GALLERYITEMACTION_H
 
-#include <QtWidgets/QAction>
+#include <QAction>
 
 class CustomGalleryItemData;
 class CustomGalleryData;

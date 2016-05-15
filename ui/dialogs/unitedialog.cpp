@@ -2,7 +2,7 @@
 #define MAX_SCALE 2.0
 #define SCALE_STEP 0.2
 
-#include <QtWidgets/QScrollBar>
+#include <QScrollBar>
 
 #include "data/customgalleryitemdata.h"
 

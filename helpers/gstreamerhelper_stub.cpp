@@ -1,9 +1,6 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 
-//#include <QtWidgets/QApplication>
-#include <QtWidgets/QtWidgets>
-
 #include "helpers/gstreamerhelper.h"
 
 GStreamerHelper* GStreamerHelper::instance = NULL;

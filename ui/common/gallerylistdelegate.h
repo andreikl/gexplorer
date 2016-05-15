@@ -3,7 +3,7 @@
 
 #include <QtCore/QModelIndex>
 
-#include <QtWidgets/QStyledItemDelegate>
+#include <QStyledItemDelegate>
 
 QT_BEGIN_NAMESPACE
 class QListView;

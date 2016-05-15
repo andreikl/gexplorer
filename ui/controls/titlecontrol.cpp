@@ -1,4 +1,4 @@
-#include <QtWidgets/QToolBar>
+#include <QToolBar>
 
 #include "ui/controls/titlecontrol.h"
 #include "ui_titlecontrol.h"

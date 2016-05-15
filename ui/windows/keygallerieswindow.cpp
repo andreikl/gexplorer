@@ -3,10 +3,10 @@
 
 #include <QtGui/QDragEnterEvent>
 
-#include <QtWidgets/QMessageBox>
-#include <QtWidgets/QTreeView>
-#include <QtWidgets/QToolBar>
-#include <QtWidgets/QMenu>
+#include <QMessageBox>
+#include <QTreeView>
+#include <QToolBar>
+#include <QMenu>
 
 #include "data/keydata.h"
 

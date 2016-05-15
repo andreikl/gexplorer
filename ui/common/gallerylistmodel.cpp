@@ -1,6 +1,6 @@
 #define MAX_ICON_SIZE 300
 
-#include <QtCore/QSortFilterProxyModel>
+#include <QSortFilterProxyModel>
 #include <QtCore/QDebug>
 #include <QtCore/QTimer>
 

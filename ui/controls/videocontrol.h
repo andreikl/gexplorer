@@ -1,7 +1,7 @@
 #ifndef VIDEOCONTROL_H
 #define VIDEOCONTROL_H
 
-#include <QtWidgets/QWidget>
+#include <QWidget>
 
 QT_BEGIN_NAMESPACE
 class QToolBar;

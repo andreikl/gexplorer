@@ -2,8 +2,8 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 
-#include <QtWidgets/QFileDialog>
-#include <QtWidgets/QSplitter>
+#include <QFileDialog>
+#include <QSplitter>
 
 //#include <Qt3D/QGLAbstractScene>
 

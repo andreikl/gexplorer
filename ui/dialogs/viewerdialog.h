@@ -1,7 +1,7 @@
 #ifndef VIEWERDIALOG_H
 #define VIEWERDIALOG_H
 
-#include <QtWidgets/QDialog>
+#include <QDialog>
 
 class GalleryListModel;
 class ViewerControl;

@@ -3,7 +3,7 @@
 
 #include <QtCore/QStack>
 
-#include <QtWebKitWidgets/QWebView>
+#include <QWebView>
 
 #include "ui/common/browsernetworkaccessmanager.h"
 

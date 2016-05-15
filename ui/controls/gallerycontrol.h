@@ -1,7 +1,7 @@
 #ifndef GALLERYCONTROL_H
 #define GALLERYCONTROL_H
 
-#include <QtWidgets/QWidget>
+#include <QWidget>
 
 class CustomGalleryItemData;
 class GalleryListModel;

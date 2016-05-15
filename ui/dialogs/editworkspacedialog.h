@@ -1,7 +1,7 @@
 #ifndef EDITWORKSPACEDIALOG_H
 #define EDITWORKSPACEDIALOG_H
 
-#include <QtWidgets/QDialog>
+#include <QDialog>
 
 namespace Ui
 {

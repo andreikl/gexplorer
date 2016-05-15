@@ -1,7 +1,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 
-#include <QtWidgets/QApplication>
+#include <QApplication>
 
 #include <QtWebKit/QWebSettings>
 

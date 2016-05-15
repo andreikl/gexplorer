@@ -1,4 +1,4 @@
-#include <QtWidgets/QAction>
+#include <QAction>
 
 #include "data/customgalleryitemdata.h"
 #include "data/customgallerydata.h"

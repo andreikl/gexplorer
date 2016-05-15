@@ -1,7 +1,7 @@
 #ifndef KEYGALLERIESWINDOW_H
 #define KEYGALLERIESWINDOW_H
 
-#include <QtWidgets/QDockWidget>
+#include <QDockWidget>
 
 class CustomGalleryData;
 class TitleControl;

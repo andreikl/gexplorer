@@ -1,7 +1,7 @@
 #ifndef GALLERIESWINDOW_H
 #define GALLERIESWINDOW_H
 
-#include <QtWidgets/QDockWidget>
+#include <QDockWidget>
 
 class GalleryTreeModel;
 class GalleriesTree;

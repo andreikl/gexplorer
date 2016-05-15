@@ -1,4 +1,4 @@
-#include <QtWidgets/QFileDialog>
+#include <QFileDialog>
 
 #include "ui/dialogs/addgallerydialog.h"
 #include "ui_addgallerydialog.h"

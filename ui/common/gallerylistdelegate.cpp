@@ -6,8 +6,8 @@
 
 #include <QtGui/QPainter>
 
-#include <QtWidgets/QScrollBar>
-#include <QtWidgets/QListView>
+#include <QScrollBar>
+#include <QListView>
 
 #include "data/customgalleryitemdata.h"
 #include "data/galleryitemdata.h"

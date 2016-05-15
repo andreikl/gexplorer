@@ -2,8 +2,8 @@
 
 #include <QtGui/QContextMenuEvent>
 
-#include <QtWidgets/QToolBar>
-#include <QtWidgets/QMenu>
+#include <QToolBar>
+#include <QMenu>
 
 #include "ui/common/gallerylistmodel.h"
 

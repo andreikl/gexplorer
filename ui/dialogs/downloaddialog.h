@@ -1,7 +1,7 @@
 #ifndef DOWNLOADDIALOG_H
 #define DOWNLOADDIALOG_H
 
-#include <QtWidgets/QDialog>
+#include <QDialog>
 
 class CustomGalleryItemData;
 class GalleryItemModel;

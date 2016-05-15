@@ -1,15 +1,15 @@
-#include <QtCore/QSortFilterProxyModel>
+#include <QSortFilterProxyModel>
 #include <QtCore/QMimeData>
 #include <QtCore/QDebug>
 
 #include <QtGui/QContextMenuEvent>
 #include <QtGui/QDrag>
 
-#include <QtWidgets/QMessageBox>
-#include <QtWidgets/QListView>
-#include <QtWidgets/QComboBox>
-#include <QtWidgets/QToolBar>
-#include <QtWidgets/QMenu>
+#include <QMessageBox>
+#include <QListView>
+#include <QComboBox>
+#include <QToolBar>
+#include <QMenu>
 
 #include "config.h"
 

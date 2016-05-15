@@ -3,14 +3,14 @@
 
 #include <QtGui/QContextMenuEvent>
 
-#include <QtWidgets/QVBoxLayout>
-#include <QtWidgets/QLineEdit>
-#include <QtWidgets/QToolBar>
-#include <QtWidgets/QMenu>
+#include <QVBoxLayout>
+#include <QLineEdit>
+#include <QToolBar>
+#include <QMenu>
 
 #include <QtWebKit/QWebElement>
 
-#include <QtWebKitWidgets/QWebFrame>
+#include <QWebFrame>
 
 #include "application.h"
 

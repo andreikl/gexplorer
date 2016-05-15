@@ -1,7 +1,7 @@
 #ifndef DOWNLOADS_WINDOW_H
 #define DOWNLOADS_WINDOW_H
 
-#include <QtWidgets/QDockWidget>
+#include <QDockWidget>
 
 class DownloadHandler;
 

@@ -1,7 +1,7 @@
 #ifndef BROWSERCONTROL_H
 #define BROWSERCONTROL_H
 
-#include <QtWidgets/QWidget>
+#include <QWidget>
 
 class BrowserViewControl;
 class TitleControl;
@@ -11,6 +11,7 @@ QT_BEGIN_NAMESPACE
 class QWebElement;
 class QLineEdit;
 class QMenu;
+class QUrl;
 QT_END_NAMESPACE
 
 namespace Ui

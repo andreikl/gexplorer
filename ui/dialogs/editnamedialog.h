@@ -1,7 +1,7 @@
 #ifndef EDIT_NAME_DIALOG_H
 #define EDIT_NAME_DIALOG_H
 
-#include <QtWidgets/QDialog>
+#include <QDialog>
 
 class CustomGalleryData;
 class GalleryData;

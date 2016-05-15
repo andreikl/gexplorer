@@ -1,10 +1,10 @@
 #include <QtCore/QDebug>
 #include <QtCore/QTimer>
 
-#include <QtWidgets/QVBoxLayout>
-#include <QtWidgets/QToolBar>
-#include <QtWidgets/QSlider>
-#include <QtWidgets/QAction>
+#include <QVBoxLayout>
+#include <QToolBar>
+#include <QSlider>
+#include <QAction>
 
 #include "helpers/gstreamerhelper.h"
 

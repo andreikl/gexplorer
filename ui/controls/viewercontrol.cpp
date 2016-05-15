@@ -2,7 +2,7 @@
 
 #include <QtGui/QPainter>
 
-#include <QtWidgets/QVBoxLayout>
+#include <QVBoxLayout>
 
 #include "data/customgalleryitemdata.h"
 #include "data/galleryitemdata.h"

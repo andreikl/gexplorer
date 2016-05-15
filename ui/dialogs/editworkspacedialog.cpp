@@ -1,4 +1,4 @@
-#include <QtWidgets/QFileDialog>
+#include <QFileDialog>
 
 #include "config.h"
 

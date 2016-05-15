@@ -4,12 +4,12 @@
 
 #include <QtGui/QMouseEvent>
 
-#include <QtWidgets/QStatusBar>
-#include <QtWidgets/QLineEdit>
+#include <QStatusBar>
+#include <QLineEdit>
 
 #include <QtWebKit/QWebElement>
 
-#include <QtWebKitWidgets/QWebFrame>
+#include <QWebFrame>
 
 #include "ui/controls/browsercontrol.h"
 

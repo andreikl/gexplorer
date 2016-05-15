@@ -1,7 +1,7 @@
 #ifndef UNITEDIALOG_H
 #define UNITEDIALOG_H
 
-#include <QtWidgets/QDialog>
+#include <QDialog>
 
 class CustomGalleryItemData;
 

@@ -1,7 +1,7 @@
 #ifndef CUSTOMGALLERIESWINDOW_H
 #define CUSTOMGALLERIESWINDOW_H
 
-#include <QtWidgets/QDockWidget>
+#include <QDockWidget>
 
 class CustomGalleriesTree;
 class CustomGalleryData;

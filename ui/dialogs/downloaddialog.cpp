@@ -1,7 +1,7 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QDebug>
 
-#include <QtWidgets/QMessageBox>
+#include <QMessageBox>
 
 #include "data/customgalleryitemdata.h"
 #include "data/galleryitemdata.h"

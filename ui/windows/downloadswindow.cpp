@@ -1,6 +1,6 @@
 #include <QtGui/QPainter>
 
-#include <QtWidgets/QStyledItemDelegate>
+#include <QStyledItemDelegate>
 
 #include "application.h"
 #include "config.h"

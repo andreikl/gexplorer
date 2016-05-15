@@ -4,11 +4,11 @@
 #include <QtGui/QDragEnterEvent>
 #include <QtGui/QDrag>
 
-#include <QtWidgets/QMessageBox>
-#include <QtWidgets/QComboBox>
-#include <QtWidgets/QTreeView>
-#include <QtWidgets/QToolBar>
-#include <QtWidgets/QMenu>
+#include <QMessageBox>
+#include <QComboBox>
+#include <QTreeView>
+#include <QToolBar>
+#include <QMenu>
 
 #include "data/customgallerydata.h"
 #include "data/keydata.h"

@@ -1,7 +1,7 @@
 #ifndef TITLE_CONTROL_H
 #define TITLE_CONTROL_H
 
-#include <QtWidgets/QWidget>
+#include <QWidget>
 
 QT_BEGIN_NAMESPACE
 class QToolBar;
